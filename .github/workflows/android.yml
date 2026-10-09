@@ -7,7 +7,8 @@ on:
 
 permissions:
   contents: read
- njobs:
+
+jobs:
   build:
     runs-on: ubuntu-latest
     steps:
@@ -20,6 +21,8 @@ permissions:
           java-version: '17'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
       - name: Build debug APK
         run: gradle assembleDebug
       - name: Upload APK
