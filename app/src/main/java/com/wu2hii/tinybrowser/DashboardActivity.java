@@ -60,6 +60,12 @@ public class DashboardActivity extends Activity {
         addTool("⌘","Base64 编解码","文本编码与解码，支持中文","base64");
         addTool("#","文本哈希","计算 SHA-256 摘要","hash");
         addTool("◷","时间戳转换","Unix 秒与毫秒时间戳互转","timestamp");
+        section("文字与开发");
+        addTool("♧","密码生成器","SecureRandom 随机密码","password");
+        addTool("⌁","URL 编解码","网址参数编码与解码","url");
+        addTool("{}","JSON 格式化","校验、格式化与压缩 JSON","json");
+        addTool("⇄","进制转换","文本、HEX、二进制互转","radix");
+        addTool("〰","摩斯电码","文字与摩斯电码互转","morse");
         section("传感器与实用工具");
         addTool("⌖","指南针","使用设备磁力传感器","compass");
         addTool("▣","手电筒","使用设备闪光灯","flash");
