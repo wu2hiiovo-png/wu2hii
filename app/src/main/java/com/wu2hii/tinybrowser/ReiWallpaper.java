@@ -1,6 +1,7 @@
 package com.wu2hii.cleanx;
 
 import android.content.Context;
+import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -15,6 +16,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public final class ReiWallpaper {
+    private static final String PREFS = "wallpaper_settings";
+    private static final String KEY_URI = "custom_wallpaper_uri";
     private static final String WALLPAPER =
         "https://images.hdqwalls.com/download/rei-ayanami-neon-genesis-evangelion-5k-ir-2160x3840.jpg";
     private ReiWallpaper() {}
@@ -26,7 +29,7 @@ public final class ReiWallpaper {
             new int[]{0xff0b1428, 0xff172b49, 0xff0c1830});
         target.setBackground(fallback);
         Runnable startLoad = () -> new Thread(() -> {
-            Bitmap bitmap = load(context.getApplicationContext());
+            Bitmap bitmap = loadSelected(context.getApplicationContext());
             if (bitmap == null) return;
             int w = Math.max(1, target.getWidth());
             int h = Math.max(1, target.getHeight());
@@ -59,6 +62,31 @@ public final class ReiWallpaper {
         else target.addOnAttachStateChangeListener(listener);
     }
 
+
+
+    public static Uri selectedUri(Context context) {
+        String value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_URI, null);
+        return value == null ? null : Uri.parse(value);
+    }
+    public static void setSelectedUri(Context context, Uri uri) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_URI, uri == null ? null : uri.toString()).apply();
+    }
+    private static Bitmap loadSelected(Context context) {
+        Uri uri = selectedUri(context);
+        if (uri == null) return load(context);
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
+            try (InputStream in = context.getContentResolver().openInputStream(uri)) { BitmapFactory.decodeStream(in, null, bounds); }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return load(context);
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = Math.max(1, Math.min(bounds.outWidth, bounds.outHeight) / 1200);
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+                Bitmap bitmap = BitmapFactory.decodeStream(in, null, options);
+                return bitmap != null ? bitmap : load(context);
+            }
+        } catch (Exception e) { return load(context); }
+    }
 
     private static Bitmap cropCenter(Bitmap source, float targetAspect) {
         if (source == null || targetAspect <= 0f) return source;
