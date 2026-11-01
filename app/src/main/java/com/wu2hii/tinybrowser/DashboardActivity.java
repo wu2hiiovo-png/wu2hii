@@ -56,6 +56,10 @@ public class DashboardActivity extends Activity {
         addTool("▦","二维码生成器","离线生成网址和文本二维码","qr");
         addTool("◴","历史上的今天","回看这一天发生的历史事件","history");
         addTool("♟","小游戏","2048 数字合并、反应速度测试","games");
+        section("编码与开发");
+        addTool("⌘","Base64 编解码","文本编码与解码，支持中文","base64");
+        addTool("#","文本哈希","计算 SHA-256 摘要","hash");
+        addTool("◷","时间戳转换","Unix 秒与毫秒时间戳互转","timestamp");
         section("传感器与实用工具");
         addTool("⌖","指南针","使用设备磁力传感器","compass");
         addTool("▣","手电筒","使用设备闪光灯","flash");
