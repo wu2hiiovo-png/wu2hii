@@ -96,9 +96,54 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "filehash":heading("文件哈希","通过系统文件选择器计算文件 SHA-256。");fileHashTool();break;
             case "wallpaper":heading("自定义壁纸","从手机相册或文件中选择图片，设置为工具箱背景。图片仅保存在本机，不会上传。");wallpaperTool();break;
             case "settings":heading("外观设置","调整工具箱图标与文字的颜色、透明度，也可以更换背景壁纸。");appearanceSettings();break;
+            case "video":heading("视频下载","选择 Instagram、TikTok 或 X，粘贴公开视频链接后打开解析页面。");videoDownloader();break;
         }
     }
     Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
+
+
+    void videoDownloader(){
+        TextView intro=text("支持 Instagram Reels/公开视频、TikTok 和 X。选择来源后粘贴链接；也可以选择“自动识别”。",13);
+        intro.setTextColor(0xffa9bfd9);intro.setPadding(0,0,0,dp(12));root.addView(intro);
+        RadioGroup platforms=new RadioGroup(this);platforms.setOrientation(RadioGroup.HORIZONTAL);
+        String[] names={"自动识别","Instagram","TikTok","X"};
+        for(int i=0;i<names.length;i++){RadioButton rb=new RadioButton(this);rb.setText(names[i]);rb.setTextColor(Color.WHITE);rb.setButtonTintList(android.content.res.ColorStateList.valueOf(0xff8bd7e6));rb.setId(100+i);platforms.addView(rb,new RadioGroup.LayoutParams(-2,-2));}
+        platforms.check(100);root.addView(platforms);
+        EditText link=input("粘贴 Instagram / TikTok / X 视频链接");
+        link.setSingleLine(false);link.setMinLines(2);link.setMaxLines(4);root.addView(link);
+        TextView status=text("正在检查剪贴板…",12);status.setTextColor(0xffa9bfd9);status.setPadding(0,dp(8),0,dp(12));root.addView(status);
+        try{
+            android.content.ClipboardManager cm=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+            if(cm!=null&&cm.hasPrimaryClip()&&cm.getPrimaryClip().getItemCount()>0){
+                CharSequence clip=cm.getPrimaryClip().getItemAt(0).coerceToText(this);
+                if(clip!=null){String value=clip.toString().trim();if(isSupportedVideoUrl(value)){link.setText(value);int id=detectVideoPlatform(value);platforms.check(id==0?100:id==1?101:id==2?102:103);status.setText("已从剪贴板识别："+names[id]);}else status.setText("剪贴板中没有识别到支持的视频链接，可手动粘贴。");}
+            }else status.setText("粘贴公开的视频链接，或先复制链接再打开此页面。");
+        }catch(Exception e){status.setText("请手动粘贴视频链接。");}
+        Button paste=button("读取剪贴板",false);root.addView(paste);
+        paste.setOnClickListener(v->{try{android.content.ClipboardManager cm=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);if(cm!=null&&cm.hasPrimaryClip()&&cm.getPrimaryClip().getItemCount()>0){CharSequence c=cm.getPrimaryClip().getItemAt(0).coerceToText(this);if(c!=null){String value=c.toString().trim();link.setText(value);int id=detectVideoPlatform(value);if(id>=0)platforms.check(id==0?101:id==1?102:103);status.setText(isSupportedVideoUrl(value)?"已读取剪贴板链接。":"剪贴板内容不是支持的视频链接。");}}}catch(Exception e){status.setText("读取剪贴板失败，请手动粘贴。");}});
+        Button open=button("复制链接并打开解析页面",true);root.addView(open);
+        open.setOnClickListener(v->{
+            String value=link.getText().toString().trim();
+            if(!isSupportedVideoUrl(value)){status.setText("链接无效。请粘贴 Instagram、TikTok 或 X 的公开视频链接。");return;}
+            int selected=platforms.getCheckedRadioButtonId();
+            int detected=detectVideoPlatform(value);
+            if(selected!=100&&selected!=100+detected+1){status.setText("所选平台与链接域名不一致，请重新选择或使用自动识别。");return;}
+            try{
+                android.content.ClipboardManager cm=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(ClipData.newPlainText("视频链接",value));
+                Intent i=new Intent(Intent.ACTION_VIEW,Uri.parse("https://video.runapps.org/"));
+                startActivity(i);
+                status.setText("链接已复制。解析页面打开后，粘贴链接即可继续下载。");
+            }catch(Exception e){status.setText("无法打开解析页面，请检查浏览器或网络。");}
+        });
+        TextView note=text("说明：解析由第三方网页服务完成，打开后需要将已复制的链接粘贴到页面。服务可用性由运营方决定；请仅下载你有权保存的公开内容。工具箱不会收集社交账号密码。",11);
+        note.setTextColor(0xff91a9c5);note.setPadding(0,dp(14),0,0);root.addView(note);
+    }
+    boolean isSupportedVideoUrl(String value){return detectVideoPlatform(value)>=0;}
+    int detectVideoPlatform(String value){
+        try{Uri u=Uri.parse(value);String h=u.getHost();if(h==null)return -1;h=h.toLowerCase(Locale.ROOT);if(h.equals("instagram.com")||h.endsWith(".instagram.com"))return 0;if(h.equals("tiktok.com")||h.endsWith(".tiktok.com"))return 1;if(h.equals("x.com")||h.endsWith(".x.com")||h.equals("twitter.com")||h.endsWith(".twitter.com"))return 2;}catch(Exception ignored){}
+        return -1;
+    }
 
     void appearanceSettings(){
         android.content.SharedPreferences prefs=getSharedPreferences("ui_settings",MODE_PRIVATE);
