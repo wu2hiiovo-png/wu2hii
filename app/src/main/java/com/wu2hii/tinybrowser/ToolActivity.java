@@ -29,7 +29,9 @@ import java.net.*;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.*;
-import org.json.*;\nimport java.security.MessageDigest;\nimport java.security.SecureRandom;
+import org.json.*;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 
 public class ToolActivity extends Activity implements SensorEventListener {
     int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
@@ -78,7 +80,10 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "convert":heading("单位换算","长度、质量、温度、面积、体积与速度换算。");converter();break;
             case "text":heading("文本工具","快速统计字数，转换大小写与清理空白。");textTools();break;
             case "compass":heading("指南针","使用设备加速度计与磁力传感器计算方位。");compass();break;
-            case "flash":heading("手电筒","点击开启时才申请相机权限；离开页面自动关闭。");flashlight();break;\n            case "base64":heading("Base64 编解码","在本机完成编码与解码，支持 UTF-8 中文文本。");base64Tool();break;\n            case "hash":heading("文本哈希","计算 SHA-256 摘要；相同输入会得到相同结果。");hashTool();break;\n            case "timestamp":heading("时间戳转换","Unix 时间戳按 UTC 秒数定义，结果按设备当前时区显示。");timestampTool();break;
+            case "flash":heading("手电筒","点击开启时才申请相机权限；离开页面自动关闭。");flashlight();break;
+            case "base64":heading("Base64 编解码","在本机完成编码与解码，支持 UTF-8 中文文本。");base64Tool();break;
+            case "hash":heading("文本哈希","计算 SHA-256 摘要；相同输入会得到相同结果。");hashTool();break;
+            case "timestamp":heading("时间戳转换","Unix 时间戳按 UTC 秒数定义，结果按设备当前时区显示。");timestampTool();break;
         }
     }
     Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
@@ -289,7 +294,8 @@ public class ToolActivity extends Activity implements SensorEventListener {
         Button copy=button("复制转换结果",false);root.addView(copy);copy.setOnClickListener(v->copyText(result.getText().toString()));
     }
     void copyText(String s){((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("toolbox",s));Toast.makeText(this,"已复制",Toast.LENGTH_SHORT).show();}
-\n    void flashlight(){
+
+    void flashlight(){
         cameraManager=(CameraManager)getSystemService(CAMERA_SERVICE);Button toggle=button("开启手电筒",true);root.addView(toggle);TextView status=text("当前状态：关闭",15);status.setPadding(0,dp(12),0,0);root.addView(status);
         try{for(String id:cameraManager.getCameraIdList()){CameraCharacteristics c=cameraManager.getCameraCharacteristics(id);Boolean flash=c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);Integer facing=c.get(CameraCharacteristics.LENS_FACING);if(Boolean.TRUE.equals(flash)&&facing!=null&&facing==CameraCharacteristics.LENS_FACING_BACK){cameraId=id;break;}}}catch(Exception ignored){}
         toggle.setOnClickListener(v->{if(cameraId==null){status.setText("此设备未提供可用的后置闪光灯。");return;}if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.CAMERA},41);return;}setTorch(!torchOn,toggle,status);});
