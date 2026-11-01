@@ -48,7 +48,7 @@ public class DashboardActivity extends Activity {
         TextView eyebrow=label("PERSONAL TOOLBOX  /  01",10,0xff86c9df);eyebrow.setLetterSpacing(.2f);heading.addView(eyebrow);
         TextView title=label("wu2hii",36,white);title.setTypeface(Typeface.create("serif",Typeface.ITALIC));heading.addView(title);
         top.addView(heading,new LinearLayout.LayoutParams(0,-2,1));
-        TextView gear=label("⚙  设置",14,0xffe4f3ff);gear.setTypeface(null,Typeface.BOLD);gear.setGravity(Gravity.CENTER);gear.setBackground(panel());top.addView(gear,new LinearLayout.LayoutParams(dp(78),dp(48)));
+        TextView gear=label("⚙  设置",14,0xffe4f3ff);gear.setTypeface(null,Typeface.BOLD);gear.setGravity(Gravity.CENTER);gear.setBackground(panel().getBackground());top.addView(gear,new LinearLayout.LayoutParams(dp(78),dp(48)));
         gear.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool","settings");startActivity(i);overridePendingTransition(0,0);});
         page.addView(top);
         TextView desc=label("把常用工具，收进一个清透的空间。",13,muted);desc.setPadding(0,dp(2),0,dp(18));page.addView(desc);
