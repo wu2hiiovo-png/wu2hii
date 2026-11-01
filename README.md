@@ -55,3 +55,9 @@ GitHub Actions builds a debug APK, uploads an Actions artifact, and publishes it
 - 新增个性化 / 壁纸设置入口，可通过 Android 系统图片选择器设置本地图片。
 - 使用 Storage Access Framework 持久化读取授权，壁纸 URI 保存在应用私有偏好设置中，不上传图片。
 - 支持恢复默认背景；图片按屏幕容器比例居中裁剪，不拉伸。
+
+
+## 3.8.0 外观设置
+- 首页右上角统一使用「设置」入口，不再单独占用首页个性化分类。
+- 图标颜色与透明度、文字颜色与透明度可分别调整，并保存在本机。
+- 设置页可直接更换或恢复默认壁纸。
