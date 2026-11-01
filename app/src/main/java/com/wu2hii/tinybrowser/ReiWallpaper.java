@@ -1,12 +1,10 @@
 package com.wu2hii.cleanx;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
@@ -51,7 +49,7 @@ public final class ReiWallpaper {
         }).start();
     }
 
-    private static Bitmap load(Context context, int index) {
+    private static synchronized Bitmap load(Context context, int index) {
         File file = new File(context.getCacheDir(), "rei-wallpaper-" + index + ".jpg");
         if (!file.isFile() || file.length() < 10000) {
             HttpURLConnection connection = null;
