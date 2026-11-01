@@ -182,7 +182,13 @@ public class ToolActivity extends Activity implements SensorEventListener {
     }
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode==73&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
+        if(requestCode==75&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
+            try(InputStream in=getContentResolver().openInputStream(data.getData());ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1){if(out.size()>30*1024*1024)throw new Exception();out.write(buf,0,n);}pendingImageBytes=out.toByteArray();Toast.makeText(this,"图片已载入",Toast.LENGTH_SHORT).show();}catch(Exception e){Toast.makeText(this,"读取失败或图片超过 30 MB",Toast.LENGTH_SHORT).show();}
+        }else if(requestCode==76&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
+            try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new Exception();out.write(pendingImageBytes);Toast.makeText(this,"图片已保存",Toast.LENGTH_SHORT).show();}catch(Exception e){Toast.makeText(this,"保存失败",Toast.LENGTH_SHORT).show();}
+        }else if(requestCode==74&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
+            try(InputStream in=getContentResolver().openInputStream(data.getData())){MessageDigest md=MessageDigest.getInstance("SHA-256");byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)md.update(buf,0,n);StringBuilder hex=new StringBuilder();for(byte b:md.digest())hex.append(String.format(Locale.US,"%02x",b&255));new AlertDialog.Builder(this).setTitle("文件 SHA-256").setMessage(hex.toString()).setPositiveButton("复制",(a,b)->copyText(hex.toString())).setNegativeButton("关闭",null).show();}catch(Exception e){Toast.makeText(this,"文件读取或哈希失败",Toast.LENGTH_SHORT).show();}
+        }else if(requestCode==73&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
             Uri uri=data.getData();int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             try{getContentResolver().takePersistableUriPermission(uri,flags);}catch(Exception ignored){}
             getSharedPreferences("toolbox",MODE_PRIVATE).edit().putString("tree_uri",uri.toString()).apply();
