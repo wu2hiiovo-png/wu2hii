@@ -24,6 +24,7 @@ import android.view.*;
 import android.widget.*;
 import android.text.*;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
 import java.math.*;
 import java.text.DecimalFormat;
 import java.net.*;
