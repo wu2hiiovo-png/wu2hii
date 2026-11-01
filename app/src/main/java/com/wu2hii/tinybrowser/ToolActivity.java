@@ -3,6 +3,15 @@ package com.wu2hii.cleanx;
 import android.Manifest;
 import android.app.*;
 import android.content.*;
+import android.net.Uri;
+import android.provider.DocumentsContract;
+import android.graphics.Bitmap;
+import android.widget.ImageView;
+import androidx.documentfile.provider.DocumentFile;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.common.BitMatrix;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -25,6 +34,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
     float[] gravity,geomagnetic; TextView compassValue; boolean compassRegistered=false;
     Runnable clockTask; long startedAt,elapsed; boolean running=false; TextView watchText; Button watchToggle;
     TextView calcExpression,calcResult,calcHistory; String expression=""; boolean justEvaluated=false;
+    LinearLayout fileContainer; DocumentFile currentDir; final ArrayList<DocumentFile> folderStack=new ArrayList<>(); ImageView qrImage;
     DecimalFormat decimal=new DecimalFormat("0.##########");
     TextView text(String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(Color.WHITE);return t;}
     @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(0xff0b1428);getWindow().setNavigationBarColor(0xff0b1428);
@@ -40,6 +50,8 @@ public class ToolActivity extends Activity implements SensorEventListener {
         switch(tool==null?"":tool){
             case "device":heading("设备信息","设备基本信息与存储概览");deviceInfo();break;
             case "clean":heading("CleanX 文件清理","所有候选文件默认不勾选，必须由你逐项选择并二次确认。");Button clean=button("打开 CleanX 扫描",true);root.addView(clean);clean.setOnClickListener(v->startActivity(new Intent(this,MainActivity.class)));break;
+            case "file":heading("文件管理","只浏览你通过系统选择器授权的目录；删除操作会再次确认。");fileManager();break;
+            case "qr":heading("二维码生成器","输入网址、文字或联系方式，生成可扫描的二维码。");qrGenerator();break;
             case "calc":heading("计算器","支持括号、百分比、连续运算和科学函数。");calculator();break;
             case "timer":heading("秒表与计时器","正计时与倒计时，适合日常计时。");stopwatch();countdown();break;
             case "convert":heading("单位换算","长度、质量、温度、面积、体积与速度换算。");converter();break;
@@ -120,6 +132,55 @@ public class ToolActivity extends Activity implements SensorEventListener {
         src.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int c,int a){}public void onTextChanged(CharSequence s,int st,int before,int c){String v=s.toString();count.setText("字符："+v.length()+"   不含空格："+v.replaceAll("\\s","").length()+"   单词："+(v.trim().isEmpty()?0:v.trim().split("\\s+").length));}public void afterTextChanged(Editable e){}});
         String[] actions={"全部大写","全部小写","首字母大写","清除多余空白","复制文本"};for(String action:actions){Button b=button(action,false);root.addView(b);b.setOnClickListener(v->{String s=src.getText().toString();switch(action){case "全部大写":s=s.toUpperCase(Locale.ROOT);break;case "全部小写":s=s.toLowerCase(Locale.ROOT);break;case "首字母大写":s=s.isEmpty()?s:s.substring(0,1).toUpperCase(Locale.ROOT)+s.substring(1);break;case "清除多余空白":s=s.trim().replaceAll("\\s+"," ");break;case "复制文本":((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("text",s));Toast.makeText(this,"已复制",Toast.LENGTH_SHORT).show();return;}src.setText(s);});}
     }
+
+    void fileManager(){
+        Button choose=button("选择或更换文件夹",true);root.addView(choose);
+        Button create=button("在当前目录新建文件夹",false);root.addView(create);
+        TextView path=text("尚未选择目录",12);path.setTextColor(0xff9db7d2);path.setPadding(0,dp(8),0,dp(8));root.addView(path);
+        Button up=button("返回上一级",false);root.addView(up);
+        fileContainer=new LinearLayout(this);fileContainer.setOrientation(1);root.addView(fileContainer);
+        choose.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);startActivityForResult(i,73);});
+        create.setOnClickListener(v->{if(currentDir==null||!currentDir.canWrite()){Toast.makeText(this,"请先选择一个可写目录",Toast.LENGTH_SHORT).show();return;}EditText name=input("文件夹名称");new AlertDialog.Builder(this).setTitle("新建文件夹").setView(name).setNegativeButton("取消",null).setPositiveButton("创建",(d,w)->{String n=name.getText().toString().trim();if(n.isEmpty()){Toast.makeText(this,"名称不能为空",Toast.LENGTH_SHORT).show();return;}if(currentDir.createDirectory(n)==null)Toast.makeText(this,"创建失败",Toast.LENGTH_SHORT).show();refreshFiles(path,up);}).show();});
+        up.setOnClickListener(v->{if(folderStack.size()>1){folderStack.remove(folderStack.size()-1);currentDir=folderStack.get(folderStack.size()-1);refreshFiles(path,up);}else Toast.makeText(this,"已经是授权目录的顶层",Toast.LENGTH_SHORT).show();});
+        String saved=getSharedPreferences("toolbox",MODE_PRIVATE).getString("tree_uri",null);
+        if(saved!=null){try{Uri uri=Uri.parse(saved);currentDir=DocumentFile.fromTreeUri(this,uri);if(currentDir!=null){folderStack.clear();folderStack.add(currentDir);refreshFiles(path,up);}}catch(Exception ignored){}}
+    }
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode==73&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
+            Uri uri=data.getData();int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            try{getContentResolver().takePersistableUriPermission(uri,flags);}catch(Exception ignored){}
+            getSharedPreferences("toolbox",MODE_PRIVATE).edit().putString("tree_uri",uri.toString()).apply();
+            currentDir=DocumentFile.fromTreeUri(this,uri);folderStack.clear();if(currentDir!=null)folderStack.add(currentDir);
+            if(fileContainer!=null){View path=root.getChildAt(root.getChildCount()-2);View up=root.getChildAt(root.getChildCount()-3);if(path instanceof TextView&&up instanceof Button)refreshFiles((TextView)path,(Button)up);}
+        }
+    }
+    void refreshFiles(TextView path,Button up){
+        if(fileContainer==null)return;fileContainer.removeAllViews();
+        path.setText(currentDir==null?"尚未选择目录":currentDir.getName());
+        up.setEnabled(folderStack.size()>1);
+        if(currentDir==null)return;
+        DocumentFile[] files=currentDir.listFiles();
+        Arrays.sort(files,(a,b)->{if(a.isDirectory()!=b.isDirectory())return a.isDirectory()?-1:1;return String.valueOf(a.getName()).compareToIgnoreCase(String.valueOf(b.getName()));});
+        if(files.length==0){TextView empty=text("这个目录是空的。",14);empty.setPadding(0,dp(18),0,0);fileContainer.addView(empty);return;}
+        for(DocumentFile file:files){
+            LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(10),dp(9),dp(8),dp(9));row.setBackground(tint(0x224c82ad,12));
+            LinearLayout.LayoutParams rowLp=new LinearLayout.LayoutParams(-1,-2);rowLp.bottomMargin=dp(6);fileContainer.addView(row,rowLp);
+            TextView label=text((file.isDirectory()?"📁  ":"📄  ")+file.getName()+(file.isDirectory()?"":"\n"+formatBytes(file.length())),13);label.setMaxLines(2);row.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+            Button open=button(file.isDirectory()?"进入":"打开",false);row.addView(open);
+            open.setOnClickListener(v->{if(file.isDirectory()){currentDir=file;folderStack.add(file);refreshFiles(path,up);}else{try{String mime=getContentResolver().getType(file.getUri());Intent view=new Intent(Intent.ACTION_VIEW);view.setDataAndType(file.getUri(),mime==null?"*/*":mime);view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(Intent.createChooser(view,"打开文件"));}catch(Exception e){Toast.makeText(this,"没有可打开此文件的应用",Toast.LENGTH_SHORT).show();}}});
+            if(file.isFile()&&file.canWrite()){Button del=button("删除",false);row.addView(del);del.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("删除文件？").setMessage("将删除："+file.getName()).setNegativeButton("取消",null).setPositiveButton("删除",(d,w)->{if(!file.delete())Toast.makeText(this,"删除失败或权限不足",Toast.LENGTH_SHORT).show();refreshFiles(path,up);}).show());}
+        }
+    }
+    void qrGenerator(){
+        EditText value=input("输入网址或文字内容");root.addView(value);
+        Button make=button("生成二维码",true);root.addView(make);
+        qrImage=new ImageView(this);qrImage.setAdjustViewBounds(true);qrImage.setScaleType(ImageView.ScaleType.FIT_CENTER);qrImage.setPadding(dp(12),dp(12),dp(12),dp(12));qrImage.setBackground(tint(Color.WHITE,18));LinearLayout.LayoutParams imageLp=new LinearLayout.LayoutParams(-1,dp(270));imageLp.setMargins(dp(8),dp(16),dp(8),dp(12));root.addView(qrImage,imageLp);
+        TextView note=text("二维码会在本机生成，不会上传输入内容。",12);note.setTextColor(0xff9db7d2);root.addView(note);
+        Button copy=button("复制原始内容",false);root.addView(copy);copy.setOnClickListener(v->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("QR content",value.getText().toString()));Toast.makeText(this,"已复制",Toast.LENGTH_SHORT).show();});
+        make.setOnClickListener(v->{String content=value.getText().toString().trim();if(content.isEmpty()){Toast.makeText(this,"先输入需要生成二维码的内容",Toast.LENGTH_SHORT).show();return;}try{Map<EncodeHintType,Object> hints=new EnumMap<>(EncodeHintType.class);hints.put(EncodeHintType.MARGIN,1);BitMatrix matrix=new QRCodeWriter().encode(content,BarcodeFormat.QR_CODE,720,720,hints);Bitmap bitmap=Bitmap.createBitmap(720,720,Bitmap.Config.ARGB_8888);for(int y=0;y<720;y++)for(int x=0;x<720;x++)bitmap.setPixel(x,y,matrix.get(x,y)?Color.BLACK:Color.WHITE);qrImage.setImageBitmap(bitmap);}catch(Exception e){Toast.makeText(this,"内容太长或无法生成二维码，请缩短内容。",Toast.LENGTH_LONG).show();}});
+    }
+
     void flashlight(){
         cameraManager=(CameraManager)getSystemService(CAMERA_SERVICE);Button toggle=button("开启手电筒",true);root.addView(toggle);TextView status=text("当前状态：关闭",15);status.setPadding(0,dp(12),0,0);root.addView(status);
         try{for(String id:cameraManager.getCameraIdList()){CameraCharacteristics c=cameraManager.getCameraCharacteristics(id);Boolean flash=c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);Integer facing=c.get(CameraCharacteristics.LENS_FACING);if(Boolean.TRUE.equals(flash)&&facing!=null&&facing==CameraCharacteristics.LENS_FACING_BACK){cameraId=id;break;}}}catch(Exception ignored){}
