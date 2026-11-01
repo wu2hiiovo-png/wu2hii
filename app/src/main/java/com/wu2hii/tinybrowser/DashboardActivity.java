@@ -13,6 +13,7 @@ import java.util.*;
 public class DashboardActivity extends Activity {
     private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
     private LinearLayout page;
+    private FrameLayout stage;
     private int white=Color.WHITE, muted=0xffa9bdd8;
     @Override public void onCreate(Bundle b){super.onCreate(b);
         getWindow().setStatusBarColor(0xff0b1428);getWindow().setNavigationBarColor(0xff0b1428);
@@ -21,6 +22,7 @@ public class DashboardActivity extends Activity {
     }
     private void splash(){
         FrameLayout frame=new FrameLayout(this);
+        stage=frame;
         ReiWallpaper.apply(this,frame);
         LinearLayout center=new LinearLayout(this);center.setGravity(Gravity.CENTER);center.setOrientation(1);
         TextView logo=new TextView(this);logo.setText("wu2hii");logo.setTextColor(white);logo.setTextSize(43);logo.setTypeface(Typeface.create("serif",Typeface.ITALIC));
@@ -29,15 +31,15 @@ public class DashboardActivity extends Activity {
         center.addView(logo);center.addView(sub);frame.addView(center,new FrameLayout.LayoutParams(-1,-1));
         logo.setAlpha(0f);logo.setScaleX(.88f);logo.setScaleY(.88f);
         setContentView(frame);
-        logo.animate().alpha(1).scaleX(1).scaleY(1).setDuration(950).setInterpolator(new OvershootInterpolator(1.1f)).withEndAction(()->{
-            sub.animate().alpha(1).setDuration(500).withEndAction(()->frame.animate().alpha(0).setDuration(350).withEndAction(this::home).start()).start();
+        logo.animate().alpha(1).scaleX(1).scaleY(1).setDuration(950).setInterpolator(new DecelerateInterpolator()).withEndAction(()->{
+            sub.animate().alpha(1).setDuration(300).withEndAction(()->{center.animate().alpha(0f).setDuration(160).withEndAction(()->{frame.removeView(center);home();}).start();}).start();
         }).start();
     }
     private void home(){
-        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
+        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         page=new LinearLayout(this);page.setOrientation(1);page.setPadding(dp(18),dp(18),dp(18),dp(28));
         page.setBackgroundColor(Color.TRANSPARENT);
-        scroll.addView(page);setContentView(scroll);ReiWallpaper.apply(this,scroll);
+        scroll.addView(page);if(stage.getChildCount()>0)stage.removeAllViews();stage.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         TextView eyebrow=label("PERSONAL TOOLBOX  /  01",10,0xff86c9df);eyebrow.setLetterSpacing(.2f);page.addView(eyebrow);
         TextView title=label("wu2hii",36,white);title.setTypeface(Typeface.create("serif",Typeface.ITALIC));page.addView(title);
         TextView desc=label("把常用工具，收进一个清透的空间。",13,muted);desc.setPadding(0,dp(2),0,dp(18));page.addView(desc);
@@ -58,7 +60,7 @@ public class DashboardActivity extends Activity {
         addTool("⌖","指南针","使用设备磁力传感器","compass");
         addTool("▣","手电筒","使用设备闪光灯","flash");
         TextView foot=label("DESIGNED BY wu2hii  ·  OFFLINE FIRST",9,0xff7189a9);foot.setGravity(Gravity.CENTER);foot.setPadding(0,dp(24),0,dp(4));page.addView(foot);
-        for(int i=0;i<page.getChildCount();i++){View v=page.getChildAt(i);v.setAlpha(0);v.setTranslationY(dp(12));v.animate().alpha(1).translationY(0).setStartDelay(i*35L).setDuration(360).start();}
+        for(int i=0;i<page.getChildCount();i++){View v=page.getChildAt(i);v.setAlpha(0f);v.animate().alpha(1f).setStartDelay(i*16L).setDuration(160).setInterpolator(new DecelerateInterpolator()).start();}
     }
     private void glassPanel(String a,String b){
         LinearLayout box=panel();box.setPadding(dp(17),dp(15),dp(17),dp(15));
@@ -74,7 +76,7 @@ public class DashboardActivity extends Activity {
         texts.addView(label(name,14,white));TextView sub=label(detail,11,muted);sub.setPadding(0,dp(3),0,0);texts.addView(sub);
         box.addView(texts,new LinearLayout.LayoutParams(0,-2,1));TextView arrow=label("›",25,0xff91b9d8);box.addView(arrow);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(9);page.addView(box,lp);
-        box.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool",key);startActivity(i);overridePendingTransition(android.R.anim.fade_in,android.R.anim.fade_out);});
+        box.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool",key);startActivity(i);overridePendingTransition(0,0);});
         box.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.965f).scaleY(.965f).alpha(.88f).setDuration(80).start();}if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL)v.animate().scaleX(1).scaleY(1).alpha(1f).setDuration(170).setInterpolator(new OvershootInterpolator(1.15f)).start();return false;});
     }
     private LinearLayout panel(){
