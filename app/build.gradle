@@ -1,14 +1,13 @@
 plugins { id 'com.android.application' }
 
 android {
-    namespace 'com.wu2hii.tinybrowser'
+    namespace 'com.wu2hii.cleanx'
     compileSdk 35
-
     defaultConfig {
-        applicationId 'com.wu2hii.tinybrowser'
-        minSdk 23
+        applicationId 'com.wu2hii.cleanx'
+        minSdk 26
         targetSdk 35
         versionCode 1
-        versionName '1.0'
+        versionName '1.0.0'
     }
 }
