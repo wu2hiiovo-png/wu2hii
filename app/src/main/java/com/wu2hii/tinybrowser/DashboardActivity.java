@@ -15,12 +15,14 @@ public class DashboardActivity extends Activity {
     private LinearLayout page;
     private FrameLayout stage;
     private int white=Color.WHITE, muted=0xffa9bdd8;
+    private int pref(String key,int fallback){return getSharedPreferences("ui_settings",MODE_PRIVATE).getInt(key,fallback);}
+    private int styled(int color,int alpha){return (color & 0x00ffffff) | (Math.max(0,Math.min(255,alpha))<<24);}
     @Override public void onCreate(Bundle b){super.onCreate(b);
         getWindow().setStatusBarColor(0xff0b1428);getWindow().setNavigationBarColor(0xff0b1428);
         ReiWallpaper.rotateForLaunch(this);
         splash();
     }
-    @Override protected void onResume(){super.onResume();if(stage!=null)ReiWallpaper.apply(this,stage);}
+    @Override protected void onResume(){super.onResume();if(stage!=null)ReiWallpaper.apply(this,stage);if(page!=null)home();}
     private void splash(){
         FrameLayout frame=new FrameLayout(this);
         stage=frame;
@@ -41,12 +43,16 @@ public class DashboardActivity extends Activity {
         page=new LinearLayout(this);page.setOrientation(1);page.setPadding(dp(18),dp(18),dp(18),dp(28));
         page.setBackgroundColor(Color.TRANSPARENT);
         scroll.addView(page);if(stage.getChildCount()>0)stage.removeAllViews();stage.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
-        TextView eyebrow=label("PERSONAL TOOLBOX  /  01",10,0xff86c9df);eyebrow.setLetterSpacing(.2f);page.addView(eyebrow);
-        TextView title=label("wu2hii",36,white);title.setTypeface(Typeface.create("serif",Typeface.ITALIC));page.addView(title);
+        LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);top.setOrientation(0);
+        LinearLayout heading=new LinearLayout(this);heading.setOrientation(1);
+        TextView eyebrow=label("PERSONAL TOOLBOX  /  01",10,0xff86c9df);eyebrow.setLetterSpacing(.2f);heading.addView(eyebrow);
+        TextView title=label("wu2hii",36,white);title.setTypeface(Typeface.create("serif",Typeface.ITALIC));heading.addView(title);
+        top.addView(heading,new LinearLayout.LayoutParams(0,-2,1));
+        TextView gear=label("⚙",25,0xffd8ecfa);gear.setGravity(Gravity.CENTER);gear.setBackground(panel());top.addView(gear,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        gear.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool","settings");startActivity(i);overridePendingTransition(0,0);});
+        page.addView(top);
         TextView desc=label("把常用工具，收进一个清透的空间。",13,muted);desc.setPadding(0,dp(2),0,dp(18));page.addView(desc);
         glassPanel("QUICK ACCESS","轻量、离线优先 · 按需开启权限");
-        section("个性化");
-        addTool("▧","壁纸设置","从手机选择图片，自定义工具箱背景","wallpaper");
         section("系统与清理");
         addTool("✦","设备信息","电池、系统版本、存储概览","device");
         addTool("⌁","CleanX 文件清理","扫描候选文件，逐项确认后处理","clean");
@@ -84,12 +90,12 @@ public class DashboardActivity extends Activity {
         TextView s=label(b,13,white);s.setPadding(0,dp(7),0,0);box.addView(s);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(18);page.addView(box,lp);
     }
-    private void section(String s){TextView t=label(s,15,white);t.setTypeface(null,1);t.setPadding(dp(2),dp(12),0,dp(7));page.addView(t);}
+    private void section(String s){TextView t=label(s,15,styled(pref("text_color",0xffffffff),pref("text_alpha",255)));t.setTypeface(null,1);t.setPadding(dp(2),dp(12),0,dp(7));page.addView(t);}
     private void addTool(String icon,String name,String detail,String key){
         LinearLayout box=panel();box.setOrientation(0);box.setGravity(Gravity.CENTER_VERTICAL);box.setPadding(dp(14),dp(13),dp(12),dp(13));
-        TextView symbol=label(icon,23,0xff9de6e7);symbol.setGravity(Gravity.CENTER);box.addView(symbol,new LinearLayout.LayoutParams(dp(42),dp(42)));
+        TextView symbol=label(icon,23,styled(pref("icon_color",0xff9de6e7),pref("icon_alpha",255)));symbol.setGravity(Gravity.CENTER);box.addView(symbol,new LinearLayout.LayoutParams(dp(42),dp(42)));
         LinearLayout texts=new LinearLayout(this);texts.setOrientation(1);texts.setPadding(dp(10),0,0,0);
-        texts.addView(label(name,14,white));TextView sub=label(detail,11,muted);sub.setPadding(0,dp(3),0,0);texts.addView(sub);
+        texts.addView(label(name,14,styled(pref("text_color",0xffffffff),pref("text_alpha",255))));TextView sub=label(detail,11,styled(pref("text_color",0xffa9bdd8),pref("text_alpha",255)));sub.setPadding(0,dp(3),0,0);texts.addView(sub);
         box.addView(texts,new LinearLayout.LayoutParams(0,-2,1));TextView arrow=label("›",25,0xff91b9d8);box.addView(arrow);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(9);page.addView(box,lp);
         box.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool",key);startActivity(i);overridePendingTransition(0,0);});
