@@ -7,8 +7,8 @@ android {
         applicationId 'com.wu2hii.cleanx'
         minSdk 26
         targetSdk 35
-        versionCode 6
-        versionName '3.1.1'
+        versionCode 7
+        versionName '3.2.0'
     }
 }
 
@@ -24,5 +24,7 @@ configurations.configureEach {
 }
 
 dependencies {
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+    implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.github.styropyr0:Prismal:v1.0.8'
 }
