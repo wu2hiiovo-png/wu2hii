@@ -49,9 +49,7 @@ public class MainActivity extends Activity {
     private void buildUi(){
         root=new LinearLayout(this); root.setOrientation(1);
         root.setPadding(dp(18),dp(14),dp(18),dp(12));
-        GradientDrawable backdrop=new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-            new int[]{0xff101b35,0xff172746,0xff10172d});
-        root.setBackground(backdrop);
+        root.setBackgroundColor(Color.TRANSPARENT);
 
         heroGlass=new PrismalFrameLayout(this);
         heroGlass.setClipToOutline(true);
@@ -89,7 +87,7 @@ public class MainActivity extends Activity {
         ScrollView scroll=new ScrollView(this); scroll.setFillViewport(false);
         list=new LinearLayout(this); list.setOrientation(1); list.setPadding(0,dp(2),0,dp(12));
         scroll.addView(list); root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        setContentView(root);
+        setContentView(root);ReiWallpaper.apply(this,root);
 
         scanButton.setOnClickListener(v->chooseFolder());
         rootButton.setOnClickListener(v->scanRoot());
@@ -97,8 +95,7 @@ public class MainActivity extends Activity {
         system.setOnClickListener(v->openSystemCleaner());
         animatePress(scanButton); animatePress(rootButton); animatePress(cleanButton); animatePress(system);
         root.postDelayed(()->{try{heroGlass.updateBackground();}catch(Exception ignored){}},350);
-        animateEntrance(heroGlass,0); animateEntrance(modeLabel,70); animateEntrance(summary,110);
-        animateEntrance(scanButton,150); animateEntrance(rootButton,190); animateEntrance(cleanButton,230);
+        for(int i=0;i<root.getChildCount();i++)animateEntrance(root.getChildAt(i),i*42L);
     }
     private void animateEntrance(View v,long delay){
         v.setAlpha(0f); v.setTranslationY(dp(12));
@@ -110,6 +107,7 @@ public class MainActivity extends Activity {
             if(event.getAction()==MotionEvent.ACTION_DOWN){
                 view.animate().scaleX(0.975f).scaleY(0.975f).alpha(0.88f).setDuration(90).start();
             }else if(event.getAction()==MotionEvent.ACTION_UP || event.getAction()==MotionEvent.ACTION_CANCEL){
+                if(event.getAction()==MotionEvent.ACTION_UP && view.isPressed())view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
                 view.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(240)
                     .setInterpolator(new OvershootInterpolator(2.2f)).start();
             }
