@@ -95,9 +95,34 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "image":heading("图片工具","本地压缩或缩放图片，另存新文件，不覆盖原图。");imageTool();break;
             case "filehash":heading("文件哈希","通过系统文件选择器计算文件 SHA-256。");fileHashTool();break;
             case "wallpaper":heading("自定义壁纸","从手机相册或文件中选择图片，设置为工具箱背景。图片仅保存在本机，不会上传。");wallpaperTool();break;
+            case "settings":heading("外观设置","调整工具箱图标与文字的颜色、透明度，也可以更换背景壁纸。");appearanceSettings();break;
         }
     }
     Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
+
+    void appearanceSettings(){
+        android.content.SharedPreferences prefs=getSharedPreferences("ui_settings",MODE_PRIVATE);
+        int iconColor=prefs.getInt("icon_color",0xff9de6e7),textColor=prefs.getInt("text_color",0xffffffff);
+        int iconAlpha=prefs.getInt("icon_alpha",255),textAlpha=prefs.getInt("text_alpha",255);
+        TextView iconTitle=text("图标透明度："+Math.round(iconAlpha*100f/255)+"%",14);root.addView(iconTitle);
+        SeekBar iconSeek=new SeekBar(this);iconSeek.setMax(255);iconSeek.setProgress(iconAlpha);root.addView(iconSeek);
+        iconSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int p,boolean u){iconTitle.setText("图标透明度："+Math.round(p*100f/255)+"%");prefs.edit().putInt("icon_alpha",p).apply();}public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}});
+        TextView textTitle=text("文字透明度："+Math.round(textAlpha*100f/255)+"%",14);textTitle.setPadding(0,dp(18),0,0);root.addView(textTitle);
+        SeekBar textSeek=new SeekBar(this);textSeek.setMax(255);textSeek.setProgress(textAlpha);root.addView(textSeek);
+        textSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int p,boolean u){textTitle.setText("文字透明度："+Math.round(p*100f/255)+"%");prefs.edit().putInt("text_alpha",p).apply();}public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}});
+        TextView ic=text("图标颜色",15);ic.setPadding(0,dp(20),0,dp(8));root.addView(ic);
+        addColorChoices(prefs,"icon_color",new int[]{0xff9de6e7,0xffffffff,0xffffd166,0xffff8fab,0xffb8a1ff,0xff7dd3fc,0xff8ee3a1});
+        TextView tx=text("文字颜色",15);tx.setPadding(0,dp(20),0,dp(8));root.addView(tx);
+        addColorChoices(prefs,"text_color",new int[]{0xffffffff,0xffd9e7f5,0xffffd166,0xffffb4c6,0xffb8a1ff,0xff7dd3fc,0xffa6e3a1});
+        Button wallpaper=button("更换背景壁纸",true);wallpaper.setOnClickListener(v->{Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool","wallpaper");startActivity(i);});root.addView(wallpaper);
+        Button reset=button("恢复默认外观",false);root.addView(reset);reset.setOnClickListener(v->{prefs.edit().clear().apply();Toast.makeText(this,"外观设置已恢复默认",Toast.LENGTH_SHORT).show();recreate();});
+        TextView note=text("透明度和颜色会保存在本机。返回首页后自动应用。",12);note.setTextColor(0xffa9bfd9);note.setPadding(0,dp(14),0,0);root.addView(note);
+    }
+    void addColorChoices(android.content.SharedPreferences prefs,String key,int[] colors){
+        LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setOrientation(0);
+        for(int color:colors){View swatch=new View(this);GradientDrawable bg=new GradientDrawable();bg.setShape(GradientDrawable.OVAL);bg.setColor(color);bg.setStroke(dp(1),0x99ffffff);swatch.setBackground(bg);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(34),dp(34));lp.setMargins(0,0,dp(10),0);row.addView(swatch,lp);swatch.setOnClickListener(v->{prefs.edit().putInt(key,color).apply();Toast.makeText(this,"颜色已更新，返回首页查看",Toast.LENGTH_SHORT).show();});}
+        root.addView(row);
+    }
 
     void wallpaperTool(){
         TextView current=text(ReiWallpaper.selectedUri(this)==null?"当前：默认背景":"当前：已使用自定义壁纸",14);
