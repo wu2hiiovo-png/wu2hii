@@ -16,11 +16,12 @@ public class DashboardActivity extends Activity {
     private int white=Color.WHITE, muted=0xffa9bdd8;
     @Override public void onCreate(Bundle b){super.onCreate(b);
         getWindow().setStatusBarColor(0xff0b1428);getWindow().setNavigationBarColor(0xff0b1428);
+        ReiWallpaper.rotateForLaunch(this);
         splash();
     }
     private void splash(){
         FrameLayout frame=new FrameLayout(this);
-        frame.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff0b1428,0xff172d50,0xff0b1428}));
+        ReiWallpaper.apply(this,frame);
         LinearLayout center=new LinearLayout(this);center.setGravity(Gravity.CENTER);center.setOrientation(1);
         TextView logo=new TextView(this);logo.setText("wu2hii");logo.setTextColor(white);logo.setTextSize(43);logo.setTypeface(Typeface.create("serif",Typeface.ITALIC));
         logo.setLetterSpacing(.035f);logo.setGravity(Gravity.CENTER);
@@ -35,8 +36,8 @@ public class DashboardActivity extends Activity {
     private void home(){
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
         page=new LinearLayout(this);page.setOrientation(1);page.setPadding(dp(18),dp(18),dp(18),dp(28));
-        page.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff0b1428,0xff172b49,0xff0c1830}));
-        scroll.addView(page);setContentView(scroll);
+        page.setBackgroundColor(Color.TRANSPARENT);
+        scroll.addView(page);setContentView(scroll);ReiWallpaper.apply(this,scroll);
         TextView eyebrow=label("PERSONAL TOOLBOX  /  01",10,0xff86c9df);eyebrow.setLetterSpacing(.2f);page.addView(eyebrow);
         TextView title=label("wu2hii",36,white);title.setTypeface(Typeface.create("serif",Typeface.ITALIC));page.addView(title);
         TextView desc=label("把常用工具，收进一个清透的空间。",13,muted);desc.setPadding(0,dp(2),0,dp(18));page.addView(desc);
@@ -73,8 +74,8 @@ public class DashboardActivity extends Activity {
         texts.addView(label(name,14,white));TextView sub=label(detail,11,muted);sub.setPadding(0,dp(3),0,0);texts.addView(sub);
         box.addView(texts,new LinearLayout.LayoutParams(0,-2,1));TextView arrow=label("›",25,0xff91b9d8);box.addView(arrow);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(9);page.addView(box,lp);
-        box.setOnClickListener(v->{Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool",key);startActivity(i);overridePendingTransition(android.R.anim.fade_in,android.R.anim.fade_out);});
-        box.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(.965f).scaleY(.965f).alpha(.88f).setDuration(80).start();}if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL)v.animate().scaleX(1).scaleY(1).alpha(1f).setDuration(170).setInterpolator(new OvershootInterpolator(1.15f)).start();return false;});
+        box.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool",key);startActivity(i);overridePendingTransition(android.R.anim.fade_in,android.R.anim.fade_out);});
+        box.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.965f).scaleY(.965f).alpha(.88f).setDuration(80).start();}if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL)v.animate().scaleX(1).scaleY(1).alpha(1f).setDuration(170).setInterpolator(new OvershootInterpolator(1.15f)).start();return false;});
     }
     private LinearLayout panel(){
         LinearLayout b=new LinearLayout(this);b.setOrientation(1);
