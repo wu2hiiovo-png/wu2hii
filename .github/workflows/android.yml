@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: toolbox-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,13 +29,13 @@ jobs:
       - name: Publish APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wu2hii-Toolbox-3.1.0
+          name: wu2hii-Toolbox-3.1.1
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish APK to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="wu2hii-toolbox-v3.1.0"
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "wu2hii Toolbox v3.1.0" --notes "wu2hii Toolbox 3.1.0 - animated dashboard, tool detail pages, scientific calculator, stopwatch and countdown, unit converter, text tools, compass and flashlight."
-          gh release upload "$TAG" app/build/outputs/apk/debug/app-debug.apk#wu2hii-Toolbox-3.1.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          TAG="wu2hii-toolbox-v3.1.1"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "wu2hii Toolbox v3.1.1" --notes "wu2hii Toolbox 3.1.1 - animated dashboard, tool detail pages, scientific calculator, stopwatch and countdown, unit converter, text tools, compass and flashlight."
+          gh release upload "$TAG" app/build/outputs/apk/debug/app-debug.apk#wu2hii-Toolbox-3.1.1.apk --repo "$GITHUB_REPOSITORY" --clobber
