@@ -94,9 +94,26 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "morse":heading("摩斯电码","支持英文字母和数字。");morseTool();break;
             case "image":heading("图片工具","本地压缩或缩放图片，另存新文件，不覆盖原图。");imageTool();break;
             case "filehash":heading("文件哈希","通过系统文件选择器计算文件 SHA-256。");fileHashTool();break;
+            case "wallpaper":heading("自定义壁纸","从手机相册或文件中选择图片，设置为工具箱背景。图片仅保存在本机，不会上传。");wallpaperTool();break;
         }
     }
     Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
+
+    void wallpaperTool(){
+        TextView current=text(ReiWallpaper.selectedUri(this)==null?"当前：默认背景":"当前：已使用自定义壁纸",14);
+        current.setTextColor(0xffa9bfd9);current.setPadding(0,dp(8),0,dp(16));root.addView(current);
+        Button choose=button("从手机选择壁纸",true);root.addView(choose);
+        choose.setOnClickListener(v->{
+            Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("image/*");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            startActivityForResult(i,77);
+        });
+        Button reset=button("恢复默认背景",false);root.addView(reset);
+        reset.setOnClickListener(v->{ReiWallpaper.setSelectedUri(this,null);Toast.makeText(this,"已恢复默认背景",Toast.LENGTH_SHORT).show();recreate();});
+        TextView note=text("支持常见 JPG、PNG、WebP 图片。选择后会自动记住授权；背景固定显示，页面内容独立滚动。建议使用竖版图片。",12);
+        note.setTextColor(0xffa9bfd9);note.setPadding(0,dp(16),0,0);root.addView(note);
+    }
+
     void deviceInfo(){
         android.os.StatFs fs=new android.os.StatFs(android.os.Environment.getDataDirectory().getPath());long total=fs.getTotalBytes(),free=fs.getAvailableBytes();
         android.content.IntentFilter f=new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED);Intent battery=registerReceiver(null,f);int level=battery==null?-1:battery.getIntExtra("level",-1),scale=battery==null?100:battery.getIntExtra("scale",100);
@@ -183,7 +200,11 @@ public class ToolActivity extends Activity implements SensorEventListener {
     }
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
-        if(requestCode==75&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
+        if(requestCode==77&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
+            Uri uri=data.getData();int flags=data.getFlags()&Intent.FLAG_GRANT_READ_URI_PERMISSION;
+            try{getContentResolver().takePersistableUriPermission(uri,flags);ReiWallpaper.setSelectedUri(this,uri);Toast.makeText(this,"壁纸已设置",Toast.LENGTH_SHORT).show();recreate();}
+            catch(Exception e){Toast.makeText(this,"无法保存图片授权，请重新选择",Toast.LENGTH_SHORT).show();}
+        }else         if(requestCode==75&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
             try(InputStream in=getContentResolver().openInputStream(data.getData());ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1){if(out.size()>30*1024*1024)throw new Exception();out.write(buf,0,n);}pendingImageBytes=out.toByteArray();Toast.makeText(this,"图片已载入",Toast.LENGTH_SHORT).show();}catch(Exception e){Toast.makeText(this,"读取失败或图片超过 30 MB",Toast.LENGTH_SHORT).show();}
         }else if(requestCode==76&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){
             try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new Exception();out.write(pendingImageBytes);Toast.makeText(this,"图片已保存",Toast.LENGTH_SHORT).show();}catch(Exception e){Toast.makeText(this,"保存失败",Toast.LENGTH_SHORT).show();}
