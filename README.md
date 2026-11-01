@@ -39,3 +39,13 @@ GitHub Actions builds a debug APK, uploads an Actions artifact, and publishes it
 - The wallpaper is remotely loaded from its source page and is not bundled in the APK; the underlying artwork remains copyrighted by its respective owner:
   - https://hdqwalls.com/wallpaper/2160x3840/rei-ayanami-neon-genesis-evangelion-5k
 - Scroll edge bounce and vertical slide motion are disabled/reduced to avoid dizziness. Page transitions keep the wallpaper layer stationary and animate only foreground content.
+
+
+## 3.6.0 新增工具
+- SecureRandom 密码生成器（可选字符集和长度）
+- URL 编码/解码、JSON 格式化/压缩与校验
+- 文本 HEX / 二进制互转、摩斯电码转换
+- 图片 JPEG 压缩与缩放（SAF 选择输入和输出，原图不覆盖）
+- 文件 SHA-256 校验
+
+以上功能在设备本地处理；图片输出使用系统文件创建器。
