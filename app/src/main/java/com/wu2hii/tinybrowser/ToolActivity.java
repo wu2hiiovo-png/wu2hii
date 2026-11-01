@@ -44,23 +44,23 @@ public class ToolActivity extends Activity implements SensorEventListener {
     DecimalFormat decimal=new DecimalFormat("0.##########");
     TextView text(String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(Color.WHITE);return t;}
     @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(0xff0b1428);getWindow().setNavigationBarColor(0xff0b1428);
-        tool=getIntent().getStringExtra("tool");ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
+        tool=getIntent().getStringExtra("tool");ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(18),dp(18),dp(18),dp(28));
         root.setBackgroundColor(Color.TRANSPARENT);
-        Button back=new Button(this);back.setText("‹  返回工具箱");back.setAllCaps(false);back.setTextColor(Color.WHITE);back.setBackground(tint(0x335b9bc0,18));root.addView(back);back.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);finish();});
+        Button back=new Button(this);back.setText("‹  返回工具箱");back.setAllCaps(false);back.setTextColor(Color.WHITE);back.setBackground(tint(0x335b9bc0,18));root.addView(back);back.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);finish();overridePendingTransition(0,0);});
         scroll.addView(root);setContentView(scroll);ReiWallpaper.apply(this,scroll);showTool();animatePage();
     }
     void animatePage(){
         for(int i=0;i<root.getChildCount();i++){
             View child=root.getChildAt(i);
-            child.setAlpha(0f);child.setTranslationY(dp(12));
-            child.animate().alpha(1f).translationY(0f).setStartDelay(i*28L)
-                .setDuration(360).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+            child.setAlpha(0f);
+            child.animate().alpha(1f).setStartDelay(i*16L)
+                .setDuration(160).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
         }
     }
     void animateAdded(View view,long delay){
-        view.setAlpha(0f);view.setTranslationY(dp(9));
-        view.animate().alpha(1f).translationY(0f).setStartDelay(delay).setDuration(280)
+        view.setAlpha(0f);
+        view.animate().alpha(1f).setStartDelay(delay).setDuration(160)
             .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
     }
     GradientDrawable tint(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));d.setStroke(dp(1),0x447bbbd6);return d;}
