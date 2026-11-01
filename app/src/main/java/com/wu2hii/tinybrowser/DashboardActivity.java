@@ -51,6 +51,8 @@ public class DashboardActivity extends Activity {
         addTool("⇄","单位换算","长度、质量、温度、面积、体积与速度","convert");
         addTool("Aa","文本工具","字数统计、大小写转换、空白整理","text");
         addTool("▦","二维码生成器","离线生成网址和文本二维码","qr");
+        addTool("◴","历史上的今天","回看这一天发生的历史事件","history");
+        addTool("♟","小游戏","2048 数字合并、反应速度测试","games");
         section("传感器与实用工具");
         addTool("⌖","指南针","使用设备磁力传感器","compass");
         addTool("▣","手电筒","使用设备闪光灯","flash");
@@ -72,7 +74,7 @@ public class DashboardActivity extends Activity {
         box.addView(texts,new LinearLayout.LayoutParams(0,-2,1));TextView arrow=label("›",25,0xff91b9d8);box.addView(arrow);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(9);page.addView(box,lp);
         box.setOnClickListener(v->{Intent i=new Intent(this,ToolActivity.class);i.putExtra("tool",key);startActivity(i);overridePendingTransition(android.R.anim.fade_in,android.R.anim.fade_out);});
-        box.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN)v.animate().scaleX(.985f).scaleY(.985f).setDuration(90).start();if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL)v.animate().scaleX(1).scaleY(1).setDuration(180).start();return false;});
+        box.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(.965f).scaleY(.965f).alpha(.88f).setDuration(80).start();}if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL)v.animate().scaleX(1).scaleY(1).alpha(1f).setDuration(170).setInterpolator(new OvershootInterpolator(1.15f)).start();return false;});
     }
     private LinearLayout panel(){
         LinearLayout b=new LinearLayout(this);b.setOrientation(1);
