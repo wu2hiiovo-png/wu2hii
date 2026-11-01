@@ -152,7 +152,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
             try{getContentResolver().takePersistableUriPermission(uri,flags);}catch(Exception ignored){}
             getSharedPreferences("toolbox",MODE_PRIVATE).edit().putString("tree_uri",uri.toString()).apply();
             currentDir=DocumentFile.fromTreeUri(this,uri);folderStack.clear();if(currentDir!=null)folderStack.add(currentDir);
-            if(fileContainer!=null){View path=root.getChildAt(root.getChildCount()-2);View up=root.getChildAt(root.getChildCount()-3);if(path instanceof TextView&&up instanceof Button)refreshFiles((TextView)path,(Button)up);}
+            if(fileContainer!=null){View path=root.getChildAt(root.getChildCount()-3);View up=root.getChildAt(root.getChildCount()-2);if(path instanceof TextView&&up instanceof Button)refreshFiles((TextView)path,(Button)up);}
         }
     }
     void refreshFiles(TextView path,Button up){
