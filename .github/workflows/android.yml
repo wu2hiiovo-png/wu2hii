@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: toolbox-${{ github.ref }}
+  group: toolbox-3.3-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
