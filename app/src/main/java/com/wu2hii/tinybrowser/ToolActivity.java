@@ -84,6 +84,11 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "base64":heading("Base64 编解码","在本机完成编码与解码，支持 UTF-8 中文文本。");base64Tool();break;
             case "hash":heading("文本哈希","计算 SHA-256 摘要；相同输入会得到相同结果。");hashTool();break;
             case "timestamp":heading("时间戳转换","Unix 时间戳按 UTC 秒数定义，结果按设备当前时区显示。");timestampTool();break;
+            case "password":heading("密码生成器","使用 SecureRandom 在本机生成随机密码。");passwordTool();break;
+            case "url":heading("URL 编解码","对网址参数进行 UTF-8 百分号编码与解码。");urlTool();break;
+            case "json":heading("JSON 格式化","格式化、压缩并校验 JSON。");jsonTool();break;
+            case "radix":heading("进制转换","文本与十六进制、二进制互转。");radixTool();break;
+            case "morse":heading("摩斯电码","支持英文字母和数字。");morseTool();break;
         }
     }
     Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
@@ -294,6 +299,54 @@ public class ToolActivity extends Activity implements SensorEventListener {
         Button copy=button("复制转换结果",false);root.addView(copy);copy.setOnClickListener(v->copyText(result.getText().toString()));
     }
     void copyText(String s){((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("toolbox",s));Toast.makeText(this,"已复制",Toast.LENGTH_SHORT).show();}
+
+
+    void passwordTool(){
+        TextView label=text("密码长度：20",14);root.addView(label);
+        SeekBar seek=new SeekBar(this);seek.setMax(48);seek.setProgress(12);root.addView(seek);
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar b,int p,boolean u){label.setText("密码长度："+(8+p));}public void onStartTrackingTouch(SeekBar b){}public void onStopTrackingTouch(SeekBar b){}});
+        CheckBox upper=new CheckBox(this),lower=new CheckBox(this),digits=new CheckBox(this),symbols=new CheckBox(this);
+        upper.setText("大写字母");lower.setText("小写字母");digits.setText("数字");symbols.setText("特殊符号");
+        for(CheckBox c:new CheckBox[]{upper,lower,digits,symbols}){c.setTextColor(Color.WHITE);c.setChecked(true);root.addView(c);}
+        EditText output=input("生成的密码");output.setTextIsSelectable(true);root.addView(output);
+        Button make=button("生成密码",true);root.addView(make);
+        make.setOnClickListener(v->{String chars="";if(upper.isChecked())chars+="ABCDEFGHJKLMNPQRSTUVWXYZ";if(lower.isChecked())chars+="abcdefghijkmnopqrstuvwxyz";if(digits.isChecked())chars+="23456789";if(symbols.isChecked())chars+="!@#$%^&*()-_=+[]{}";if(chars.isEmpty()){output.setText("请至少选择一种字符类型");return;}SecureRandom r=new SecureRandom();StringBuilder b=new StringBuilder();for(int i=0;i<8+seek.getProgress();i++)b.append(chars.charAt(r.nextInt(chars.length())));output.setText(b.toString());});
+        Button copy=button("复制密码",false);root.addView(copy);copy.setOnClickListener(v->copyText(output.getText().toString()));
+    }
+    void urlTool(){
+        EditText src=input("输入文本或 URL 参数");root.addView(src);EditText out=input("转换结果");out.setMinLines(3);root.addView(out);
+        Button enc=button("URL 编码",true),dec=button("URL 解码",false);root.addView(enc);root.addView(dec);
+        enc.setOnClickListener(v->{try{out.setText(java.net.URLEncoder.encode(src.getText().toString(),"UTF-8").replace("+","%20"));}catch(Exception e){out.setText("编码失败");}});
+        dec.setOnClickListener(v->{try{out.setText(java.net.URLDecoder.decode(src.getText().toString(),"UTF-8"));}catch(Exception e){out.setText("解码失败，请检查格式");}});
+        Button copy=button("复制结果",false);root.addView(copy);copy.setOnClickListener(v->copyText(out.getText().toString()));
+    }
+    void jsonTool(){
+        EditText src=input("粘贴 JSON");src.setSingleLine(false);src.setMinLines(5);root.addView(src);
+        EditText out=input("处理结果");out.setSingleLine(false);out.setMinLines(7);out.setTextIsSelectable(true);root.addView(out);
+        Button pretty=button("格式化",true),compact=button("压缩",false);root.addView(pretty);root.addView(compact);
+        pretty.setOnClickListener(v->formatJson(src,out,true));compact.setOnClickListener(v->formatJson(src,out,false));
+        Button copy=button("复制结果",false);root.addView(copy);copy.setOnClickListener(v->copyText(out.getText().toString()));
+    }
+    void formatJson(EditText src,EditText out,boolean pretty){
+        try{Object o=new JSONTokener(src.getText().toString().trim()).nextValue();if(o instanceof JSONObject)out.setText(pretty?((JSONObject)o).toString(2):((JSONObject)o).toString());else if(o instanceof JSONArray)out.setText(pretty?((JSONArray)o).toString(2):((JSONArray)o).toString());else out.setText("JSON 顶层必须是对象或数组");}catch(Exception e){out.setText("JSON 格式错误："+e.getMessage());}
+    }
+    void radixTool(){
+        EditText src=input("输入文本 / HEX / 二进制");root.addView(src);EditText out=input("转换结果");out.setMinLines(4);out.setTextIsSelectable(true);root.addView(out);
+        Button a=button("文本 → HEX",true),b=button("HEX → 文本",false),c=button("文本 → 二进制",false),d=button("二进制 → 文本",false);
+        root.addView(a);root.addView(b);root.addView(c);root.addView(d);
+        a.setOnClickListener(v->{StringBuilder x=new StringBuilder();for(byte q:src.getText().toString().getBytes(StandardCharsets.UTF_8))x.append(String.format(Locale.US,"%02X ",q&255));out.setText(x.toString().trim());});
+        b.setOnClickListener(v->{try{String[] q=src.getText().toString().trim().split("\\s+");byte[] z=new byte[q.length];for(int i=0;i<q.length;i++)z[i]=(byte)Integer.parseInt(q[i],16);out.setText(new String(z,StandardCharsets.UTF_8));}catch(Exception e){out.setText("HEX 格式错误，请用空格分隔字节");}});
+        c.setOnClickListener(v->{StringBuilder x=new StringBuilder();for(byte q:src.getText().toString().getBytes(StandardCharsets.UTF_8)){for(int i=7;i>=0;i--)x.append((q>>i)&1);x.append(' ');}out.setText(x.toString().trim());});
+        d.setOnClickListener(v->{try{String[] q=src.getText().toString().trim().split("\\s+");byte[] z=new byte[q.length];for(int i=0;i<q.length;i++){if(q[i].length()!=8)throw new Exception();z[i]=(byte)Integer.parseInt(q[i],2);}out.setText(new String(z,StandardCharsets.UTF_8));}catch(Exception e){out.setText("二进制需要按 8 位一组输入");}});
+    }
+    void morseTool(){
+        final String letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        final String[] codes={".-","-...","-.-.","-..",".","..-.","--.","....","..",".---","-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",".--","-..-","-.--","--..","-----",".----","..---","...--","....-",".....","-....","--...","---..","----."};
+        EditText src=input("输入英文或摩斯电码");root.addView(src);EditText out=input("转换结果");out.setMinLines(3);root.addView(out);
+        Button enc=button("文字 → 摩斯",true),dec=button("摩斯 → 文字",false);root.addView(enc);root.addView(dec);
+        enc.setOnClickListener(v->{StringBuilder b=new StringBuilder();for(char c:src.getText().toString().toUpperCase(Locale.US).toCharArray()){if(c==' ')b.append("/ ");else{int i=letters.indexOf(c);b.append(i<0?"?":codes[i]).append(' ');}}out.setText(b.toString().trim());});
+        dec.setOnClickListener(v->{StringBuilder b=new StringBuilder();String[] words=src.getText().toString().trim().split("\\s*/\\s*");for(int w=0;w<words.length;w++){if(w>0)b.append(' ');for(String token:words[w].trim().split("\\s+")){int i=Arrays.asList(codes).indexOf(token);b.append(i<0?'?':letters.charAt(i));}}out.setText(b.toString());});
+    }
 
     void flashlight(){
         cameraManager=(CameraManager)getSystemService(CAMERA_SERVICE);Button toggle=button("开启手电筒",true);root.addView(toggle);TextView status=text("当前状态：关闭",15);status.setPadding(0,dp(12),0,0);root.addView(status);
