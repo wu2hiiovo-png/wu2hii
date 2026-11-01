@@ -84,7 +84,7 @@ public class MainActivity extends Activity {
         TextView hint=text("Root 模式只检查白名单缓存目录。所有文件默认不勾选，删除前必须逐项选择并二次确认。",11,0xff9eacc8);
         hint.setPadding(dp(2),dp(8),dp(2),dp(8)); root.addView(hint);
 
-        ScrollView scroll=new ScrollView(this); scroll.setFillViewport(false);
+        ScrollView scroll=new ScrollView(this); scroll.setFillViewport(false); scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         list=new LinearLayout(this); list.setOrientation(1); list.setPadding(0,dp(2),0,dp(12));
         scroll.addView(list); root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         setContentView(root);ReiWallpaper.apply(this,root);
@@ -98,8 +98,8 @@ public class MainActivity extends Activity {
         for(int i=0;i<root.getChildCount();i++)animateEntrance(root.getChildAt(i),i*42L);
     }
     private void animateEntrance(View v,long delay){
-        v.setAlpha(0f); v.setTranslationY(dp(12));
-        v.animate().alpha(1f).translationY(0f).setStartDelay(delay).setDuration(420)
+        v.setAlpha(0f);
+        v.animate().alpha(1f).setStartDelay(delay).setDuration(170)
             .setInterpolator(new OvershootInterpolator(0.7f)).start();
     }
     private void animatePress(View v){
@@ -226,7 +226,7 @@ public class MainActivity extends Activity {
         cb.setTextColor(Color.WHITE); cb.setTextSize(12); cb.setPadding(dp(3),dp(8),dp(3),dp(8));
         cb.setButtonTintList(android.content.res.ColorStateList.valueOf(0xff78dfd2));
         card.addView(cb,new LinearLayout.LayoutParams(-1,-2)); checks.add(cb);
-        card.setAlpha(0f); card.setTranslationY(dp(8));
+        card.setAlpha(0f);
         card.animate().alpha(1f).translationY(0f).setDuration(260).start();
         cb.setOnCheckedChangeListener((button,checked)->{
             card.animate().scaleX(checked?0.99f:1f).scaleY(checked?0.99f:1f).setDuration(130).start();
