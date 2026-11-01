@@ -6,6 +6,7 @@ import android.content.*;
 import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.widget.ImageView;
 import androidx.documentfile.provider.DocumentFile;
 import com.google.zxing.BarcodeFormat;
@@ -44,6 +45,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
     final ExecutorService network=Executors.newSingleThreadExecutor(); Calendar historyDate=Calendar.getInstance(); LinearLayout historyList; TextView historyStatus; int[][] board2048=new int[4][4]; int score2048=0; LinearLayout boardView; TextView scoreView; final Random gameRandom=new Random(); Handler gameHandler=new Handler(Looper.getMainLooper()); Runnable reactionTask; boolean reactionWaiting=false,reactionReady=false; long reactionStart=0;
     LinearLayout fileContainer; DocumentFile currentDir; final ArrayList<DocumentFile> folderStack=new ArrayList<>(); ImageView qrImage;
     DecimalFormat decimal=new DecimalFormat("0.##########");
+    byte[] pendingImageBytes; String pendingImageName="toolbox-image.jpg";
     TextView text(String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(Color.WHITE);return t;}
     @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(0xff0b1428);getWindow().setNavigationBarColor(0xff0b1428);
         tool=getIntent().getStringExtra("tool");ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -89,6 +91,8 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "json":heading("JSON 格式化","格式化、压缩并校验 JSON。");jsonTool();break;
             case "radix":heading("进制转换","文本与十六进制、二进制互转。");radixTool();break;
             case "morse":heading("摩斯电码","支持英文字母和数字。");morseTool();break;
+            case "image":heading("图片工具","本地压缩或缩放图片，另存新文件，不覆盖原图。");imageTool();break;
+            case "filehash":heading("文件哈希","通过系统文件选择器计算文件 SHA-256。");fileHashTool();break;
         }
     }
     Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
@@ -348,6 +352,19 @@ public class ToolActivity extends Activity implements SensorEventListener {
         dec.setOnClickListener(v->{StringBuilder b=new StringBuilder();String[] words=src.getText().toString().trim().split("\\s*/\\s*");for(int w=0;w<words.length;w++){if(w>0)b.append(' ');for(String token:words[w].trim().split("\\s+")){int i=Arrays.asList(codes).indexOf(token);b.append(i<0?'?':letters.charAt(i));}}out.setText(b.toString());});
     }
 
+    void imageTool(){
+        Button choose=button("选择图片",true);root.addView(choose);
+        EditText quality=input("JPEG 质量 1–100（默认 85）");quality.setText("85");root.addView(quality);
+        EditText width=input("缩放目标宽度（像素）");root.addView(width);
+        TextView status=text("图片仅在本机处理。输出为 JPEG，原图保留。",12);root.addView(status);
+        Button compress=button("压缩并另存",false),resize=button("缩放并另存",false);root.addView(compress);root.addView(resize);
+        choose.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,75);});
+        compress.setOnClickListener(v->{try{if(pendingImageBytes==null)throw new Exception();int q=Math.max(1,Math.min(100,Integer.parseInt(quality.getText().toString())));Bitmap b=decodeForEdit(pendingImageBytes);if(b==null)throw new Exception();ByteArrayOutputStream o=new ByteArrayOutputStream();b.compress(Bitmap.CompressFormat.JPEG,q,o);pendingImageBytes=o.toByteArray();pendingImageName="compressed-"+System.currentTimeMillis()+".jpg";saveEditedImage();}catch(Exception e){status.setText("请先选择有效图片，并输入 1–100 的质量值。");}});
+        resize.setOnClickListener(v->{try{if(pendingImageBytes==null)throw new Exception();int w=Integer.parseInt(width.getText().toString());if(w<1||w>4096)throw new Exception();Bitmap b=decodeForEdit(pendingImageBytes);int h=Math.max(1,Math.round(b.getHeight()*(w/(float)b.getWidth())));Bitmap scaled=Bitmap.createScaledBitmap(b,w,h,true);ByteArrayOutputStream o=new ByteArrayOutputStream();scaled.compress(Bitmap.CompressFormat.JPEG,92,o);pendingImageBytes=o.toByteArray();pendingImageName="resized-"+System.currentTimeMillis()+".jpg";saveEditedImage();}catch(Exception e){status.setText("请先选择图片，并输入 1–4096 的目标宽度。");}});
+    }
+    Bitmap decodeForEdit(byte[] bytes){BitmapFactory.Options b=new BitmapFactory.Options();b.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(bytes,0,bytes.length,b);if(b.outWidth<=0)return null;BitmapFactory.Options o=new BitmapFactory.Options();o.inSampleSize=Math.max(1,Math.max(b.outWidth,b.outHeight)/2400);o.inPreferredConfig=Bitmap.Config.RGB_565;return BitmapFactory.decodeByteArray(bytes,0,bytes.length,o);}
+    void saveEditedImage(){Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("image/jpeg");i.putExtra(Intent.EXTRA_TITLE,pendingImageName);startActivityForResult(i,76);}
+    void fileHashTool(){Button choose=button("选择文件并计算 SHA-256",true);root.addView(choose);choose.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,74);});}
     void flashlight(){
         cameraManager=(CameraManager)getSystemService(CAMERA_SERVICE);Button toggle=button("开启手电筒",true);root.addView(toggle);TextView status=text("当前状态：关闭",15);status.setPadding(0,dp(12),0,0);root.addView(status);
         try{for(String id:cameraManager.getCameraIdList()){CameraCharacteristics c=cameraManager.getCameraCharacteristics(id);Boolean flash=c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);Integer facing=c.get(CameraCharacteristics.LENS_FACING);if(Boolean.TRUE.equals(flash)&&facing!=null&&facing==CameraCharacteristics.LENS_FACING_BACK){cameraId=id;break;}}}catch(Exception ignored){}
