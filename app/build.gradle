@@ -12,6 +12,17 @@ android {
     }
 }
 
+// Prismal 1.0.8 currently requests AndroidX Core 1.17.0,
+// whose AAR metadata requires AGP 8.9.1+ and compileSdk 36.
+// Keep this project on its existing AGP 8.7.3 / compileSdk 35
+// baseline by pinning Core to the compatible 1.15.0 line.
+configurations.configureEach {
+    resolutionStrategy.force(
+        'androidx.core:core:1.15.0',
+        'androidx.core:core-ktx:1.15.0'
+    )
+}
+
 dependencies {
     implementation 'com.github.styropyr0:Prismal:v1.0.8'
 }
