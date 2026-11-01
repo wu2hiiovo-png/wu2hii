@@ -47,7 +47,8 @@ public class DashboardActivity extends Activity {
         section("计算与效率");
         addTool("＋","计算器","大按键布局 · 科学计算 · 历史结果","calc");
         addTool("◷","秒表与计时器","正计时、倒计时","timer");
-        addTool("⇄","单位换算","长度、质量、温度、面积、体积与速度","convert");\n        addTool("Aa","文本工具","字数统计、大小写转换、空白整理","text");
+        addTool("⇄","单位换算","长度、质量、温度、面积、体积与速度","convert");
+        addTool("Aa","文本工具","字数统计、大小写转换、空白整理","text");
         section("传感器与实用工具");
         addTool("⌖","指南针","使用设备磁力传感器","compass");
         addTool("▣","手电筒","使用设备闪光灯","flash");
