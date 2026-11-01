@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: toolbox-3.3-${{ github.ref }}
+  group: toolbox-3.4-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,15 +29,15 @@ jobs:
       - name: Publish APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wu2hii-Toolbox-3.3.0
+          name: wu2hii-Toolbox-3.4.0
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish APK to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="wu2hii-toolbox-v3.3.0"
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "wu2hii Toolbox v3.3.0" --notes "wu2hii Toolbox 3.3.0 - animated dashboard, tool detail pages, scientific calculator, stopwatch and countdown, unit converter, text tools, SAF file manager, offline QR generator, On This Day history, mini-games, haptic feedback, compass and flashlight."
-          cp app/build/outputs/apk/debug/app-debug.apk wu2hii-Toolbox-3.3.0.apk
+          TAG="wu2hii-toolbox-v3.4.0"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "wu2hii Toolbox v3.4.0" --notes "wu2hii Toolbox 3.4.0 - animated dashboard, tool detail pages, scientific calculator, stopwatch and countdown, unit converter, text tools, SAF file manager, offline QR generator, On This Day history, mini-games, haptic feedback, compass and flashlight."
+          cp app/build/outputs/apk/debug/app-debug.apk wu2hii-Toolbox-3.4.0.apk
           gh release delete-asset "$TAG" app-debug.apk --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
-          gh release upload "$TAG" wu2hii-Toolbox-3.3.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$TAG" wu2hii-Toolbox-3.4.0.apk --repo "$GITHUB_REPOSITORY" --clobber
