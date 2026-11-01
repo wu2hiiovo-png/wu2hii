@@ -38,7 +38,10 @@ public final class ReiWallpaper {
         new Thread(() -> {
             Bitmap bitmap = load(context.getApplicationContext(), index);
             if (bitmap == null) return;
-            BitmapDrawable image = new BitmapDrawable(context.getResources(), bitmap);
+            int width = Math.max(1, target.getWidth());
+            int height = Math.max(1, target.getHeight());
+            Bitmap cropped = cropCenter(bitmap, (float) width / height);
+            BitmapDrawable image = new BitmapDrawable(context.getResources(), cropped);
             image.setGravity(android.view.Gravity.FILL);
             GradientDrawable shade = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{0x6e071327, 0x650b1930, 0x99071120});
@@ -47,6 +50,21 @@ public final class ReiWallpaper {
                 if (target.getWindowToken() != null) target.setBackground(layers);
             });
         }).start();
+    }
+
+    // Center-crop to the view aspect ratio; do not stretch the source artwork.
+    private static Bitmap cropCenter(Bitmap source, float targetAspect) {
+        if (source == null || targetAspect <= 0f) return source;
+        int width = source.getWidth();
+        int height = source.getHeight();
+        float sourceAspect = (float) width / height;
+        if (Math.abs(sourceAspect - targetAspect) < 0.01f) return source;
+        if (sourceAspect > targetAspect) {
+            int cropWidth = Math.max(1, Math.min(width, Math.round(height * targetAspect)));
+            return Bitmap.createBitmap(source, (width - cropWidth) / 2, 0, cropWidth, height);
+        }
+        int cropHeight = Math.max(1, Math.min(height, Math.round(width / targetAspect)));
+        return Bitmap.createBitmap(source, 0, (height - cropHeight) / 2, width, cropHeight);
     }
 
     private static synchronized Bitmap load(Context context, int index) {
