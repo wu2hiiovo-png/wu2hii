@@ -31,3 +31,13 @@ GitHub Actions builds a debug APK, uploads an Actions artifact, and publishes it
 
 - Actions: https://github.com/wu2hiiovo-png/wu2hii/actions
 - Releases: https://github.com/wu2hiiovo-png/wu2hii/releases
+
+## Toolbox 3.4.0 visual update
+- Haptic feedback is tied to successful button presses / interactive card activation, not arbitrary screen contact or scrolling.
+- Dashboard, tool detail pages and CleanX use staggered entrance animations and press/release motion.
+- Rei Ayanami wallpapers rotate on each cold app launch and are loaded asynchronously into the app cache; a dark overlay preserves text contrast and improves the translucent-glass appearance.
+- Wallpaper images are remotely loaded from their listed source pages and are not bundled in the APK. Source pages state personal/non-commercial use; the underlying artwork remains copyrighted by its respective owner:
+  - https://hdqwalls.com/wallpaper/2160x3840/rei-ayanami-neon-genesis-evangelion-5k
+  - https://kabekin.com/iphone/wallpaper/anime/building_ayanamirei_0240920/rp5V/750/1334
+  - https://divnil.com/wallpaper/iphone5s/item_2/1392_744_eva_88_d02b82638b9ea6d8e4bf5ddd0e8123f8.html
+  - https://getwallpapers.com/collection/rei-ayanami-wallpaper-hd
