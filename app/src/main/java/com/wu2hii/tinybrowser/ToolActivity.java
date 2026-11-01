@@ -72,7 +72,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
         if(k.equals("±")){if(expression.isEmpty())expression="-";else if(expression.startsWith("-"))expression=expression.substring(1);else expression="-("+expression+")";}
         else if(k.equals("x²")){expression+="^2";}
         else if(k.equals("√")){expression+="sqrt(";}
-        else if(k.equals("sin")||k.equals("cos")||k.equals("tan")){expression+=k+"(";}
+        else if(k.equals("sin")||k.equals("cos")||k.equals("tan")||k.equals("ln")||k.equals("log")){expression+=k+"(";}
         else if(k.equals("π")){expression+="pi";}
         else {if(justEvaluated&&("0123456789.(".contains(k)||k.equals("π")))expression="";expression+=k;}
         justEvaluated=false;calcExpression.setText(expression.isEmpty()?"0":expression);
