@@ -43,10 +43,10 @@ public class ToolActivity extends Activity {
         Button go=new Button(this);go.setText("计算");root.addView(go);TextView out=text("结果将在这里显示",20);out.setPadding(0,dp(18),0,0);root.addView(out);
         go.setOnClickListener(v->{try{double x=Double.parseDouble(a.getText().toString()),y=Double.parseDouble(b.getText().toString()),z;switch(op.getSelectedItemPosition()){case 0:z=x+y;break;case 1:z=x-y;break;case 2:z=x*y;break;default:if(y==0)throw new ArithmeticException();z=x/y;}out.setText("结果： "+z);}catch(Exception e){out.setText("请输入有效数字，且除数不能为 0。");}});
     }
-    EditText input(String hint){EditText e=new EditText(this);e.setSingleLine();e.setHint(hint);e.setHintTextColor(0xff91a9c4);e.setTextColor(Color.WHITE);root.addView(e);return e;}
+    EditText input(String hint){EditText e=new EditText(this);e.setSingleLine();e.setHint(hint);e.setHintTextColor(0xff91a9c4);e.setTextColor(Color.WHITE);return e;}
     void random(){
         EditText min=input("最小值"),max=input("最大值");Button go=new Button(this);go.setText("生成随机数");root.addView(go);TextView out=text("—",26);out.setPadding(0,dp(18),0,0);root.addView(out);
-        go.setOnClickListener(v->{try{long x=Long.parseLong(min.getText().toString()),y=Long.parseLong(max.getText().toString());if(y<x)throw new Exception();long n=new java.security.SecureRandom().nextLong(y-x+1)+x;out.setText(String.valueOf(n));}catch(Exception e){out.setText("范围无效，请检查输入。");}});
+        go.setOnClickListener(v->{try{long x=Long.parseLong(min.getText().toString()),y=Long.parseLong(max.getText().toString());if(y<x)throw new Exception();java.math.BigInteger lo=java.math.BigInteger.valueOf(x), hi=java.math.BigInteger.valueOf(y); java.math.BigInteger span=hi.subtract(lo).add(java.math.BigInteger.ONE); java.math.BigInteger n; do { n=new java.math.BigInteger(span.bitLength(),new java.security.SecureRandom()); } while(n.compareTo(span)>=0); out.setText(n.add(lo).toString());}catch(Exception e){out.setText("范围无效，请检查输入。");}});
     }
     void stopwatch(){
         TextView time=text("00:00.0",42);time.setPadding(0,dp(18),0,dp(18));root.addView(time);
