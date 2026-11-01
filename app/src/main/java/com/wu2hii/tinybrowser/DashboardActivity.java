@@ -45,9 +45,9 @@ public class DashboardActivity extends Activity {
         addTool("✦","设备信息","电池、系统版本、存储概览","device");
         addTool("⌁","CleanX 文件清理","扫描候选文件，逐项确认后处理","clean");
         section("计算与效率");
-        addTool("＋","计算器","日常四则运算","calc");
+        addTool("＋","计算器","大按键布局 · 科学计算 · 历史结果","calc");
         addTool("◷","秒表与计时器","正计时、倒计时","timer");
-        addTool("⌗","随机数生成器","快速生成随机数","random");
+        addTool("⇄","单位换算","长度、质量、温度、面积、体积与速度","convert");\n        addTool("Aa","文本工具","字数统计、大小写转换、空白整理","text");
         section("传感器与实用工具");
         addTool("⌖","指南针","使用设备磁力传感器","compass");
         addTool("▣","手电筒","使用设备闪光灯","flash");
