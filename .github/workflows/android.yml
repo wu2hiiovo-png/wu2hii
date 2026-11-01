@@ -25,13 +25,13 @@ jobs:
       - name: Publish APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CleanX-Android-2.0.0
+          name: CleanX-Android-2.1.0-Liquid-Glass
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish APK to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="cleanx-v2.0.0"
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "CleanX v2.0.0" --notes "CleanX 2.0.0 - normal and Magisk Root cache scanning with manual confirmation."
-          gh release upload "$TAG" app/build/outputs/apk/debug/app-debug.apk#CleanX-v2.0.0.apk --repo "$GITHUB_REPOSITORY" --clobber
+          TAG="cleanx-v2.1.0"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "CleanX v2.1.0 Liquid Glass" --notes "CleanX 2.1.0 - Prismal liquid glass material and refined motion."
+          gh release upload "$TAG" app/build/outputs/apk/debug/app-debug.apk#CleanX-v2.1.0.apk --repo "$GITHUB_REPOSITORY" --clobber
