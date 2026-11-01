@@ -225,7 +225,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
     }
     void miniGames(){TextView intro=text("选一个小游戏，随时玩一局。",13);intro.setTextColor(0xffa9bfd9);root.addView(intro);Button g=button("2048 · 数字合并",true);root.addView(g);g.setOnClickListener(v->game2048());Button r=button("反应速度测试",false);root.addView(r);r.setOnClickListener(v->reactionGame());game2048();}
     void game2048(){
-        root.removeViews(2,Math.max(0,root.getChildCount()-2));heading("2048","滑动棋盘或使用方向按钮，把相同数字合并到 2048。");
+        root.removeViews(6,Math.max(0,root.getChildCount()-6));heading("2048","滑动棋盘或使用方向按钮，把相同数字合并到 2048。");
         scoreView=text("分数：0",17);root.addView(scoreView);boardView=new LinearLayout(this);boardView.setOrientation(1);boardView.setPadding(dp(6),dp(6),dp(6),dp(6));boardView.setBackground(tint(0x554d7192,16));root.addView(boardView);
         LinearLayout controls=new LinearLayout(this);controls.setOrientation(1);for(String[] row:new String[][]{{"↑"},{"←","↓","→"}}){LinearLayout line=new LinearLayout(this);for(String s:row){Button b=button(s,false);line.addView(b,new LinearLayout.LayoutParams(0,dp(48),1));b.setOnClickListener(v->move2048(s.equals("↑")?0:s.equals("↓")?1:s.equals("←")?2:3));}controls.addView(line);}root.addView(controls);
         Button reset=button("重新开始",false);root.addView(reset);reset.setOnClickListener(v->new2048());
@@ -236,11 +236,11 @@ public class ToolActivity extends Activity implements SensorEventListener {
     void move2048(int dir){boolean changed=false;for(int line=0;line<4;line++){int[] a=new int[4];for(int i=0;i<4;i++){int r,c;if(dir<2){r=dir==0?i:3-i;c=line;}else{r=line;c=dir==2?i:3-i;}a[i]=board2048[r][c];}
         int[] b=new int[4];int n=0;for(int x:a)if(x!=0)b[n++]=x;for(int i=0;i<3;i++)if(b[i]!=0&&b[i]==b[i+1]){b[i]*=2;score2048+=b[i];for(int j=i+1;j<3;j++)b[j]=b[j+1];b[3]=0;}
         for(int i=0;i<4;i++){int r,c;if(dir<2){r=dir==0?i:3-i;c=line;}else{r=line;c=dir==2?i:3-i;}if(board2048[r][c]!=b[i])changed=true;board2048[r][c]=b[i];}}
-        if(changed){spawn2048();performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);draw2048();if(!canMove2048())Toast.makeText(this,"没有可合并的方块了，重新开始试试。",Toast.LENGTH_LONG).show();}}
+        if(changed){spawn2048();boardView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);draw2048();if(!canMove2048())Toast.makeText(this,"没有可合并的方块了，重新开始试试。",Toast.LENGTH_LONG).show();}}
     boolean canMove2048(){for(int i=0;i<4;i++)for(int j=0;j<4;j++){if(board2048[i][j]==0)return true;if(i<3&&board2048[i][j]==board2048[i+1][j])return true;if(j<3&&board2048[i][j]==board2048[i][j+1])return true;}return false;}
     void draw2048(){if(boardView==null)return;scoreView.setText("分数："+score2048);boardView.removeAllViews();for(int i=0;i<4;i++){LinearLayout row=new LinearLayout(this);for(int j=0;j<4;j++){int val=board2048[i][j];TextView cell=text(val==0?"":String.valueOf(val),val>=1024?20:24);cell.setGravity(Gravity.CENTER);cell.setTypeface(null,Typeface.BOLD);cell.setBackground(tint(val==0?0x223e5874:val==2?0x5579a8bf:val==4?0x668ac5d2:val==8?0x7793d9d0:0x8898b9df,9));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(68),1);p.setMargins(dp(3),dp(3),dp(3),dp(3));row.addView(cell,p);}boardView.addView(row);}}
     void reactionGame(){
-        root.removeViews(2,Math.max(0,root.getChildCount()-2));heading("反应速度测试","点击开始，等待屏幕变绿后尽快点击。抢先点击会判定失败。");
+        root.removeViews(6,Math.max(0,root.getChildCount()-6));heading("反应速度测试","点击开始，等待屏幕变绿后尽快点击。抢先点击会判定失败。");
         TextView display=text("准备好了吗？",25);display.setGravity(Gravity.CENTER);display.setPadding(0,dp(40),0,dp(40));display.setBackground(tint(0x334a739a,18));root.addView(display);
         Button start=button("开始测试",true);root.addView(start);final Random random=new Random();
         start.setOnClickListener(v->{if(reactionTask!=null)gameHandler.removeCallbacks(reactionTask);reactionWaiting=true;reactionReady=false;display.setText("等待绿色出现…");display.setBackground(tint(0xff9b6a42,18));start.setText("现在点击这里");reactionTask=()->{reactionReady=true;reactionWaiting=false;reactionStart=SystemClock.elapsedRealtime();display.setText("现在！点击！");display.setBackground(tint(0xff287c57,18));display.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);};gameHandler.postDelayed(reactionTask,1200+random.nextInt(2800));});
