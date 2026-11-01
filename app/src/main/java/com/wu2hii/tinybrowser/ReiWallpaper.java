@@ -12,27 +12,21 @@ import android.view.View;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Random;
 
 public final class ReiWallpaper {
-    private static final String[] SOURCES = {
-        "https://images.hdqwalls.com/download/rei-ayanami-neon-genesis-evangelion-5k-ir-2160x3840.jpg",
-        "https://kabekin.com/iphone/uploads/converted/24/09/20/47564514-building_ayanamirei_0240920_iphone_wallpaper_kabekin-rp5V-750x1334-MM-100.jpg",
-        "https://divnil.com/wallpaper/iphone5s/img/app/1/3/1392_744_eva_88_d02b82638b9ea6d8e4bf5ddd0e8123f8_raw.jpg",
-        "https://getwallpapers.com/wallpaper/full/a/e/6/17599.jpg"
-    };
+    // Keep only the cool-toned mecha-style Rei wallpaper.
+    private static final String WALLPAPER =
+        "https://images.hdqwalls.com/download/rei-ayanami-neon-genesis-evangelion-5k-ir-2160x3840.jpg";
     private static final String PREFS = "rei_wallpaper";
     private ReiWallpaper() {}
 
     public static void rotateForLaunch(Context context) {
         SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        int old = p.getInt("index", -1);
-        int next = old < 0 ? new Random().nextInt(SOURCES.length) : (old + 1) % SOURCES.length;
-        p.edit().putInt("index", next).apply();
+        p.edit().putInt("index", 0).apply();
     }
 
     public static void apply(Context context, View target) {
-        int index = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt("index", 0);
+        int index = 0;
         target.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
             new int[]{0xff0b1428, 0xff172b49, 0xff0c1830}));
         new Thread(() -> {
@@ -68,11 +62,11 @@ public final class ReiWallpaper {
     }
 
     private static synchronized Bitmap load(Context context, int index) {
-        File file = new File(context.getCacheDir(), "rei-wallpaper-" + index + ".jpg");
+        File file = new File(context.getCacheDir(), "rei-wallpaper-cool-mecha.jpg");
         if (!file.isFile() || file.length() < 10000) {
             HttpURLConnection connection = null;
             try {
-                connection = (HttpURLConnection) new URL(SOURCES[index]).openConnection();
+                connection = (HttpURLConnection) new URL(WALLPAPER).openConnection();
                 connection.setConnectTimeout(9000);
                 connection.setReadTimeout(12000);
                 connection.setRequestProperty("User-Agent", "wu2hii-Toolbox/3.4 Android");
