@@ -26,7 +26,7 @@ public class MainActivity extends Activity {
     private final ArrayList<Item> candidates=new ArrayList<>();
     private final ArrayList<CheckBox> checks=new ArrayList<>();
     private long total=0;
-    private boolean scanning=false;
+    private boolean scanning=false, activeRoot=false;
     private static class Item {
         Uri uri; String name,path,reason; long size; boolean rootFile;
         Item(Uri u,String n,String p,long s,String r,boolean rf){uri=u;name=n;path=p;size=s;reason=r;rootFile=rf;}
@@ -78,7 +78,7 @@ public class MainActivity extends Activity {
     }
     private void scanNormal(){
         if(treeUri==null)return;
-        resetResults("普通模式"); beginScan();
+        resetResults("普通模式"); activeRoot=false; beginScan();
         new Thread(()->{
             try{
                 String rootId=DocumentsContract.getTreeDocumentId(treeUri);
@@ -110,7 +110,7 @@ public class MainActivity extends Activity {
     }
     private void scanRoot(){
         if(scanning)return;
-        resetResults("Root 增强模式"); beginScan();
+        resetResults("Root 增强模式"); activeRoot=true; beginScan();
         new Thread(()->{
             try{
                 String script="id; for base in /data/user/0 /data/user_de/0 /storage/emulated/0/Android/data; do [ -d \"$base\" ] || continue; find \"$base\" -type d -name cache -print 2>/dev/null | while IFS= read -r d; do find \"$d\" -type f -print 2>/dev/null | while IFS= read -r f; do s=$(stat -c %s \"$f\" 2>/dev/null); [ -n \"$s\" ] && [ \"$s\" -gt 0 ] 2>/dev/null && printf '%s\\t%s\\n' \"$s\" \"$f\"; done; done; done";
@@ -191,7 +191,7 @@ public class MainActivity extends Activity {
                 }catch(Exception e){failed++;}
             }
             final int success=ok,errors=failed;
-            runOnUiThread(()->{toast("删除完成：成功 "+success+" 个，失败 "+errors+" 个");if(treeUri!=null)scanNormal();else scanRoot();});
+            runOnUiThread(()->{toast("删除完成：成功 "+success+" 个，失败 "+errors+" 个");if(activeRoot)scanRoot();else scanNormal();});
         }).start();
     }
     private boolean rootDelete(String path)throws Exception{
