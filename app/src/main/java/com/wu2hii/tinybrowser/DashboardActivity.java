@@ -20,6 +20,7 @@ public class DashboardActivity extends Activity {
         ReiWallpaper.rotateForLaunch(this);
         splash();
     }
+    @Override protected void onResume(){super.onResume();if(stage!=null)ReiWallpaper.apply(this,stage);}
     private void splash(){
         FrameLayout frame=new FrameLayout(this);
         stage=frame;
