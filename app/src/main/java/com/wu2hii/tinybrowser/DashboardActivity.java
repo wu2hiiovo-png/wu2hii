@@ -44,6 +44,8 @@ public class DashboardActivity extends Activity {
         TextView title=label("wu2hii",36,white);title.setTypeface(Typeface.create("serif",Typeface.ITALIC));page.addView(title);
         TextView desc=label("把常用工具，收进一个清透的空间。",13,muted);desc.setPadding(0,dp(2),0,dp(18));page.addView(desc);
         glassPanel("QUICK ACCESS","轻量、离线优先 · 按需开启权限");
+        section("个性化");
+        addTool("▧","壁纸设置","从手机选择图片，自定义工具箱背景","wallpaper");
         section("系统与清理");
         addTool("✦","设备信息","电池、系统版本、存储概览","device");
         addTool("⌁","CleanX 文件清理","扫描候选文件，逐项确认后处理","clean");
