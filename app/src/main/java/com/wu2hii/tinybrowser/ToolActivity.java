@@ -46,9 +46,22 @@ public class ToolActivity extends Activity implements SensorEventListener {
     @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(0xff0b1428);getWindow().setNavigationBarColor(0xff0b1428);
         tool=getIntent().getStringExtra("tool");ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
         root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(18),dp(18),dp(18),dp(28));
-        root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff0b1428,0xff172b49,0xff0c1830}));
-        Button back=new Button(this);back.setText("‹  返回工具箱");back.setAllCaps(false);back.setTextColor(Color.WHITE);back.setBackground(tint(0x335b9bc0,18));root.addView(back);back.setOnClickListener(v->finish());
-        scroll.addView(root);setContentView(scroll);showTool();
+        root.setBackgroundColor(Color.TRANSPARENT);
+        Button back=new Button(this);back.setText("‹  返回工具箱");back.setAllCaps(false);back.setTextColor(Color.WHITE);back.setBackground(tint(0x335b9bc0,18));root.addView(back);back.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);finish();});
+        scroll.addView(root);setContentView(scroll);ReiWallpaper.apply(this,scroll);showTool();animatePage();
+    }
+    void animatePage(){
+        for(int i=0;i<root.getChildCount();i++){
+            View child=root.getChildAt(i);
+            child.setAlpha(0f);child.setTranslationY(dp(12));
+            child.animate().alpha(1f).translationY(0f).setStartDelay(i*28L)
+                .setDuration(360).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        }
+    }
+    void animateAdded(View view,long delay){
+        view.setAlpha(0f);view.setTranslationY(dp(9));
+        view.animate().alpha(1f).translationY(0f).setStartDelay(delay).setDuration(280)
+            .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
     }
     GradientDrawable tint(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));d.setStroke(dp(1),0x447bbbd6);return d;}
     void heading(String name,String desc){TextView title=text(name,27);title.setTypeface(null,Typeface.BOLD);title.setPadding(0,dp(22),0,dp(7));root.addView(title);TextView info=text(desc,13);info.setTextColor(0xffa9bfd9);info.setPadding(0,0,0,dp(18));root.addView(info);}
@@ -68,7 +81,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "flash":heading("手电筒","点击开启时才申请相机权限；离开页面自动关闭。");flashlight();break;
         }
     }
-    Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
+    Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
     void deviceInfo(){
         android.os.StatFs fs=new android.os.StatFs(android.os.Environment.getDataDirectory().getPath());long total=fs.getTotalBytes(),free=fs.getAvailableBytes();
         android.content.IntentFilter f=new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED);Intent battery=registerReceiver(null,f);int level=battery==null?-1:battery.getIntExtra("level",-1),scale=battery==null?100:battery.getIntExtra("scale",100);
@@ -173,7 +186,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
         if(files.length==0){TextView empty=text("这个目录是空的。",14);empty.setPadding(0,dp(18),0,0);fileContainer.addView(empty);return;}
         for(DocumentFile file:files){
             LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(10),dp(9),dp(8),dp(9));row.setBackground(tint(0x224c82ad,12));
-            LinearLayout.LayoutParams rowLp=new LinearLayout.LayoutParams(-1,-2);rowLp.bottomMargin=dp(6);fileContainer.addView(row,rowLp);
+            LinearLayout.LayoutParams rowLp=new LinearLayout.LayoutParams(-1,-2);rowLp.bottomMargin=dp(6);fileContainer.addView(row,rowLp);animateAdded(row,fileContainer.getChildCount()*16L);
             TextView label=text((file.isDirectory()?"📁  ":"📄  ")+file.getName()+(file.isDirectory()?"":"\n"+formatBytes(file.length())),13);label.setMaxLines(2);row.addView(label,new LinearLayout.LayoutParams(0,-2,1));
             Button open=button(file.isDirectory()?"进入":"打开",false);row.addView(open);
             open.setOnClickListener(v->{if(file.isDirectory()){currentDir=file;folderStack.add(file);refreshFiles(path,up);}else{try{String mime=getContentResolver().getType(file.getUri());Intent view=new Intent(Intent.ACTION_VIEW);view.setDataAndType(file.getUri(),mime==null?"*/*":mime);view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(Intent.createChooser(view,"打开文件"));}catch(Exception e){Toast.makeText(this,"没有可打开此文件的应用",Toast.LENGTH_SHORT).show();}}});
@@ -217,10 +230,10 @@ public class ToolActivity extends Activity implements SensorEventListener {
         if(items.isEmpty()){historyList.addView(text("这一天暂时没有收录的条目。",14));return;}
         int shown=0;for(JSONObject item:items){if(shown++>=45)break;int year=item.optInt("year",0);String desc=item.optString("text","");JSONArray pages=item.optJSONArray("pages");String url="";
             if(pages!=null&&pages.length()>0){JSONObject page=pages.optJSONObject(0);if(page!=null){String title=page.optString("title","");if(!title.isEmpty())try{url="https://zh.wikipedia.org/wiki/"+URLEncoder.encode(title,"UTF-8").replace("+","%20");}catch(Exception ignored){}}}
-            LinearLayout card=new LinearLayout(this);card.setOrientation(1);card.setPadding(dp(14),dp(12),dp(14),dp(12));card.setBackground(tint(0x244c82ad,14));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(8);historyList.addView(card,lp);
+            LinearLayout card=new LinearLayout(this);card.setOrientation(1);card.setPadding(dp(14),dp(12),dp(14),dp(12));card.setBackground(tint(0x244c82ad,14));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(8);historyList.addView(card,lp);animateAdded(card,shown*18L);
             TextView y=text(year==0?"历史记录":year+" 年",12);y.setTextColor(0xff91d7e5);y.setTypeface(null,Typeface.BOLD);card.addView(y);
             TextView body=text(desc,14);body.setPadding(0,dp(5),0,0);card.addView(body);
-            if(!url.isEmpty()){TextView link=text("查看相关词条  ›",11);link.setTextColor(0xff8bc9f0);link.setPadding(0,dp(8),0,0);card.addView(link);final String target=url;card.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target)));}catch(Exception ignored){}});}
+            if(!url.isEmpty()){TextView link=text("查看相关词条  ›",11);link.setTextColor(0xff8bc9f0);link.setPadding(0,dp(8),0,0);card.addView(link);final String target=url;card.setOnClickListener(v->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target)));}catch(Exception ignored){}});}
         }
     }
     void miniGames(){TextView intro=text("选一个小游戏，随时玩一局。",13);intro.setTextColor(0xffa9bfd9);root.addView(intro);Button g=button("2048 · 数字合并",true);root.addView(g);g.setOnClickListener(v->game2048());Button r=button("反应速度测试",false);root.addView(r);r.setOnClickListener(v->reactionGame());game2048();}
@@ -236,14 +249,14 @@ public class ToolActivity extends Activity implements SensorEventListener {
     void move2048(int dir){boolean changed=false;for(int line=0;line<4;line++){int[] a=new int[4];for(int i=0;i<4;i++){int r,c;if(dir<2){r=dir==0?i:3-i;c=line;}else{r=line;c=dir==2?i:3-i;}a[i]=board2048[r][c];}
         int[] b=new int[4];int n=0;for(int x:a)if(x!=0)b[n++]=x;for(int i=0;i<3;i++)if(b[i]!=0&&b[i]==b[i+1]){b[i]*=2;score2048+=b[i];for(int j=i+1;j<3;j++)b[j]=b[j+1];b[3]=0;}
         for(int i=0;i<4;i++){int r,c;if(dir<2){r=dir==0?i:3-i;c=line;}else{r=line;c=dir==2?i:3-i;}if(board2048[r][c]!=b[i])changed=true;board2048[r][c]=b[i];}}
-        if(changed){spawn2048();boardView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);draw2048();if(!canMove2048())Toast.makeText(this,"没有可合并的方块了，重新开始试试。",Toast.LENGTH_LONG).show();}}
+        if(changed){spawn2048();draw2048();if(!canMove2048())Toast.makeText(this,"没有可合并的方块了，重新开始试试。",Toast.LENGTH_LONG).show();}}
     boolean canMove2048(){for(int i=0;i<4;i++)for(int j=0;j<4;j++){if(board2048[i][j]==0)return true;if(i<3&&board2048[i][j]==board2048[i+1][j])return true;if(j<3&&board2048[i][j]==board2048[i][j+1])return true;}return false;}
     void draw2048(){if(boardView==null)return;scoreView.setText("分数："+score2048);boardView.removeAllViews();for(int i=0;i<4;i++){LinearLayout row=new LinearLayout(this);for(int j=0;j<4;j++){int val=board2048[i][j];TextView cell=text(val==0?"":String.valueOf(val),val>=1024?20:24);cell.setGravity(Gravity.CENTER);cell.setTypeface(null,Typeface.BOLD);cell.setBackground(tint(val==0?0x223e5874:val==2?0x5579a8bf:val==4?0x668ac5d2:val==8?0x7793d9d0:0x8898b9df,9));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(68),1);p.setMargins(dp(3),dp(3),dp(3),dp(3));row.addView(cell,p);}boardView.addView(row);}}
     void reactionGame(){
         root.removeViews(6,Math.max(0,root.getChildCount()-6));heading("反应速度测试","点击开始，等待屏幕变绿后尽快点击。抢先点击会判定失败。");
         TextView display=text("准备好了吗？",25);display.setGravity(Gravity.CENTER);display.setPadding(0,dp(40),0,dp(40));display.setBackground(tint(0x334a739a,18));root.addView(display);
         Button start=button("开始测试",true);root.addView(start);final Random random=new Random();
-        start.setOnClickListener(v->{if(reactionTask!=null)gameHandler.removeCallbacks(reactionTask);reactionWaiting=true;reactionReady=false;display.setText("等待绿色出现…");display.setBackground(tint(0xff9b6a42,18));start.setText("现在点击这里");reactionTask=()->{reactionReady=true;reactionWaiting=false;reactionStart=SystemClock.elapsedRealtime();display.setText("现在！点击！");display.setBackground(tint(0xff287c57,18));display.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);};gameHandler.postDelayed(reactionTask,1200+random.nextInt(2800));});
+        start.setOnClickListener(v->{if(reactionTask!=null)gameHandler.removeCallbacks(reactionTask);reactionWaiting=true;reactionReady=false;display.setText("等待绿色出现…");display.setBackground(tint(0xff9b6a42,18));start.setText("现在点击这里");reactionTask=()->{reactionReady=true;reactionWaiting=false;reactionStart=SystemClock.elapsedRealtime();display.setText("现在！点击！");display.setBackground(tint(0xff287c57,18));};gameHandler.postDelayed(reactionTask,1200+random.nextInt(2800));});
         display.setOnClickListener(v->{if(reactionWaiting){gameHandler.removeCallbacks(reactionTask);reactionWaiting=false;display.setText("太早了！再试一次。");display.setBackground(tint(0xff9b4141,18));start.setText("重新开始");}else if(reactionReady){long ms=SystemClock.elapsedRealtime()-reactionStart;reactionReady=false;display.setText("你的反应时间："+ms+" ms");display.setBackground(tint(0x334a739a,18));start.setText("再测一次");}else display.setText("先点击开始测试。");});
     }
 
