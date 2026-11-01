@@ -9,6 +9,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -27,8 +28,11 @@ public final class ReiWallpaper {
         Runnable startLoad = () -> new Thread(() -> {
             Bitmap bitmap = load(context.getApplicationContext());
             if (bitmap == null) return;
-            BitmapDrawable image = new BitmapDrawable(context.getResources(), bitmap);
-            image.setGravity(Gravity.CENTER_CROP);
+            int w = Math.max(1, target.getWidth());
+            int h = Math.max(1, target.getHeight());
+            Bitmap cropped = cropCenter(bitmap, (float) w / h);
+            BitmapDrawable image = new BitmapDrawable(context.getResources(), cropped);
+            image.setGravity(Gravity.FILL);
             GradientDrawable shade = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{0x4d071327, 0x420b1930, 0x77071120});
             LayerDrawable layers = new LayerDrawable(new Drawable[]{image, shade});
@@ -37,18 +41,35 @@ public final class ReiWallpaper {
             });
         }, "wallpaper-loader").start();
 
-        if (target.isAttachedToWindow()) {
-            startLoad.run();
-        } else {
-            View.OnAttachStateChangeListener listener = new View.OnAttachStateChangeListener() {
-                @Override public void onViewAttachedToWindow(View v) {
-                    v.removeOnAttachStateChangeListener(this);
-                    startLoad.run();
-                }
-                @Override public void onViewDetachedFromWindow(View v) {}
-            };
-            target.addOnAttachStateChangeListener(listener);
+        View.OnAttachStateChangeListener listener = new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View v) {
+                v.removeOnAttachStateChangeListener(this);
+                ViewTreeObserver observer = v.getViewTreeObserver();
+                observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override public void onGlobalLayout() {
+                        if (v.getWidth() <= 0 || v.getHeight() <= 0) return;
+                        v.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        startLoad.run();
+                    }
+                });
+            }
+            @Override public void onViewDetachedFromWindow(View v) {}
+        };
+        if (target.isAttachedToWindow()) listener.onViewAttachedToWindow(target);
+        else target.addOnAttachStateChangeListener(listener);
+    }
+
+
+    private static Bitmap cropCenter(Bitmap source, float targetAspect) {
+        if (source == null || targetAspect <= 0f) return source;
+        int width = source.getWidth(), height = source.getHeight();
+        float sourceAspect = (float) width / height;
+        if (sourceAspect > targetAspect) {
+            int cropWidth = Math.max(1, Math.min(width, Math.round(height * targetAspect)));
+            return Bitmap.createBitmap(source, (width - cropWidth) / 2, 0, cropWidth, height);
         }
+        int cropHeight = Math.max(1, Math.min(height, Math.round(width / targetAspect)));
+        return Bitmap.createBitmap(source, 0, (height - cropHeight) / 2, width, cropHeight);
     }
 
     private static synchronized Bitmap load(Context context) {
