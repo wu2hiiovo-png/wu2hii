@@ -61,7 +61,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
         calcExpression=text("0",23);calcExpression.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);calcExpression.setPadding(dp(12),dp(16),dp(12),dp(6));root.addView(calcExpression,new LinearLayout.LayoutParams(-1,dp(58)));
         calcResult=text("0",38);calcResult.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);calcResult.setTypeface(null,Typeface.BOLD);calcResult.setPadding(dp(12),0,dp(12),dp(10));root.addView(calcResult,new LinearLayout.LayoutParams(-1,dp(66)));
         calcHistory=text("",12);calcHistory.setTextColor(0xff8eabc8);calcHistory.setGravity(Gravity.RIGHT);root.addView(calcHistory,new LinearLayout.LayoutParams(-1,dp(28)));
-        String[][] keys={{"sin","cos","tan","√"},{"(",")","%","÷"},{"7","8","9","×"},{"4","5","6","−"},{"1","2","3","+"},{"±","0",".","="},{"AC","DEL","π","x²"}};
+        String[][] keys={{"sin","cos","tan","√"},{"ln","log","e","^"},{"(",")","%","÷"},{"7","8","9","×"},{"4","5","6","−"},{"1","2","3","+"},{"±","0",".","="},{"AC","DEL","π","x²"}};
         for(String[] row:keys){LinearLayout line=new LinearLayout(this);line.setOrientation(0);LinearLayout.LayoutParams rowLp=new LinearLayout.LayoutParams(-1,dp(58));rowLp.bottomMargin=dp(7);for(String key:row){Button b=button(key,key.equals("="));b.setTextSize(key.length()>2?13:19);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-1,1);p.setMargins(dp(3),0,dp(3),0);line.addView(b,p);b.setOnClickListener(v->calcPress(key));}root.addView(line,rowLp);}
         TextView tip=text("科学函数默认使用角度制。点击结果可继续运算。",11);tip.setTextColor(0xff819bb8);tip.setPadding(dp(4),dp(8),0,0);root.addView(tip);
     }
