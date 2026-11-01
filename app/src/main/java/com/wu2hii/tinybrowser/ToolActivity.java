@@ -29,7 +29,7 @@ import java.net.*;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.*;
-import org.json.*;
+import org.json.*;\nimport java.security.MessageDigest;\nimport java.security.SecureRandom;
 
 public class ToolActivity extends Activity implements SensorEventListener {
     int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
@@ -78,7 +78,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "convert":heading("单位换算","长度、质量、温度、面积、体积与速度换算。");converter();break;
             case "text":heading("文本工具","快速统计字数，转换大小写与清理空白。");textTools();break;
             case "compass":heading("指南针","使用设备加速度计与磁力传感器计算方位。");compass();break;
-            case "flash":heading("手电筒","点击开启时才申请相机权限；离开页面自动关闭。");flashlight();break;
+            case "flash":heading("手电筒","点击开启时才申请相机权限；离开页面自动关闭。");flashlight();break;\n            case "base64":heading("Base64 编解码","在本机完成编码与解码，支持 UTF-8 中文文本。");base64Tool();break;\n            case "hash":heading("文本哈希","计算 SHA-256 摘要；相同输入会得到相同结果。");hashTool();break;\n            case "timestamp":heading("时间戳转换","Unix 时间戳按 UTC 秒数定义，结果按设备当前时区显示。");timestampTool();break;
         }
     }
     Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){if(e.getAction()==MotionEvent.ACTION_UP&&v.isPressed())v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
@@ -260,7 +260,36 @@ public class ToolActivity extends Activity implements SensorEventListener {
         display.setOnClickListener(v->{if(reactionWaiting){gameHandler.removeCallbacks(reactionTask);reactionWaiting=false;display.setText("太早了！再试一次。");display.setBackground(tint(0xff9b4141,18));start.setText("重新开始");}else if(reactionReady){long ms=SystemClock.elapsedRealtime()-reactionStart;reactionReady=false;display.setText("你的反应时间："+ms+" ms");display.setBackground(tint(0x334a739a,18));start.setText("再测一次");}else display.setText("先点击开始测试。");});
     }
 
-    void flashlight(){
+
+    void base64Tool(){
+        EditText input=input("输入需要编码或解码的文本");
+        root.addView(input);
+        EditText output=input("结果会显示在这里");output.setMinLines(3);root.addView(output);
+        LinearLayout row=new LinearLayout(this);
+        Button encode=button("编码 → Base64",true),decode=button("解码 → 文本",false);
+        row.addView(encode,new LinearLayout.LayoutParams(0,dp(50),1));
+        row.addView(decode,new LinearLayout.LayoutParams(0,dp(50),1));root.addView(row);
+        encode.setOnClickListener(v->{try{String s=android.util.Base64.encodeToString(input.getText().toString().getBytes("UTF-8"),android.util.Base64.NO_WRAP);output.setText(s);}catch(Exception e){output.setText("编码失败");}});
+        decode.setOnClickListener(v->{try{byte[] bytes=android.util.Base64.decode(input.getText().toString().trim(),android.util.Base64.DEFAULT);output.setText(new String(bytes,"UTF-8"));}catch(Exception e){output.setText("解码失败：请检查 Base64 内容是否完整。");}});
+        Button copy=button("复制结果",false);root.addView(copy);copy.setOnClickListener(v->copyText(output.getText().toString()));
+    }
+    void hashTool(){
+        EditText input=input("输入文本");root.addView(input);
+        TextView result=text("SHA-256：",13);result.setTextIsSelectable(true);result.setPadding(dp(12),dp(16),dp(12),dp(16));result.setBackground(tint(0x244c82ad,14));root.addView(result);
+        Button calc=button("计算 SHA-256",true);root.addView(calc);
+        calc.setOnClickListener(v->{try{byte[] digest=MessageDigest.getInstance("SHA-256").digest(input.getText().toString().getBytes("UTF-8"));StringBuilder hex=new StringBuilder();for(byte b:digest)hex.append(String.format(Locale.US,"%02x",b&255));result.setText("SHA-256：\n"+hex);}catch(Exception e){result.setText("计算失败");}});
+        Button copy=button("复制摘要",false);root.addView(copy);copy.setOnClickListener(v->copyText(result.getText().toString().replace("SHA-256：\n","")));
+    }
+    void timestampTool(){
+        EditText value=input("输入 Unix 时间戳（秒或毫秒）");value.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);root.addView(value);
+        TextView result=text("转换结果会显示在这里",14);result.setPadding(dp(12),dp(16),dp(12),dp(16));result.setBackground(tint(0x244c82ad,14));root.addView(result);
+        Button convert=button("时间戳 → 日期",true);root.addView(convert);
+        convert.setOnClickListener(v->{try{long n=Long.parseLong(value.getText().toString().trim());if(Math.abs(n)<100000000000L)n*=1000L;result.setText(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z",Locale.getDefault()).format(new Date(n)));}catch(Exception e){result.setText("请输入有效的整数时间戳。");}});
+        Button now=button("填入当前时间戳（秒）",false);root.addView(now);now.setOnClickListener(v->{long n=System.currentTimeMillis()/1000L;value.setText(String.valueOf(n));result.setText("当前时间戳："+n);});
+        Button copy=button("复制转换结果",false);root.addView(copy);copy.setOnClickListener(v->copyText(result.getText().toString()));
+    }
+    void copyText(String s){((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("toolbox",s));Toast.makeText(this,"已复制",Toast.LENGTH_SHORT).show();}
+\n    void flashlight(){
         cameraManager=(CameraManager)getSystemService(CAMERA_SERVICE);Button toggle=button("开启手电筒",true);root.addView(toggle);TextView status=text("当前状态：关闭",15);status.setPadding(0,dp(12),0,0);root.addView(status);
         try{for(String id:cameraManager.getCameraIdList()){CameraCharacteristics c=cameraManager.getCameraCharacteristics(id);Boolean flash=c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);Integer facing=c.get(CameraCharacteristics.LENS_FACING);if(Boolean.TRUE.equals(flash)&&facing!=null&&facing==CameraCharacteristics.LENS_FACING_BACK){cameraId=id;break;}}}catch(Exception ignored){}
         toggle.setOnClickListener(v->{if(cameraId==null){status.setText("此设备未提供可用的后置闪光灯。");return;}if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.CAMERA},41);return;}setTorch(!torchOn,toggle,status);});
