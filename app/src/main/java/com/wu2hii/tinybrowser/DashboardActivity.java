@@ -66,6 +66,9 @@ public class DashboardActivity extends Activity {
         addTool("{}","JSON 格式化","校验、格式化与压缩 JSON","json");
         addTool("⇄","进制转换","文本、HEX、二进制互转","radix");
         addTool("〰","摩斯电码","文字与摩斯电码互转","morse");
+        section("图片与文件");
+        addTool("▧","图片压缩与缩放","本地处理图片并另存，不覆盖原图","image");
+        addTool("#","文件 SHA-256","计算文件 SHA-256 摘要","filehash");
         section("传感器与实用工具");
         addTool("⌖","指南针","使用设备磁力传感器","compass");
         addTool("▣","手电筒","使用设备闪光灯","flash");
