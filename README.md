@@ -49,3 +49,9 @@ GitHub Actions builds a debug APK, uploads an Actions artifact, and publishes it
 - 文件 SHA-256 校验
 
 以上功能在设备本地处理；图片输出使用系统文件创建器。
+
+
+## 3.7.0 壁纸自定义
+- 新增个性化 / 壁纸设置入口，可通过 Android 系统图片选择器设置本地图片。
+- 使用 Storage Access Framework 持久化读取授权，壁纸 URI 保存在应用私有偏好设置中，不上传图片。
+- 支持恢复默认背景；图片按屏幕容器比例居中裁剪，不拉伸。
