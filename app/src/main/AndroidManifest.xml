@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.CAMERA" />
   <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="wu2hii Toolbox" android:allowBackup="false">
     <activity android:name=".ToolActivity" android:exported="false" />
     <activity android:name=".MainActivity" android:exported="false" />
