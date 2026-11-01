@@ -25,6 +25,11 @@ import android.text.*;
 import java.util.*;
 import java.math.*;
 import java.text.DecimalFormat;
+import java.net.*;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.concurrent.*;
+import org.json.*;
 
 public class ToolActivity extends Activity implements SensorEventListener {
     int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
@@ -34,6 +39,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
     float[] gravity,geomagnetic; TextView compassValue; boolean compassRegistered=false;
     Runnable clockTask; long startedAt,elapsed; boolean running=false; TextView watchText; Button watchToggle;
     TextView calcExpression,calcResult,calcHistory; String expression=""; boolean justEvaluated=false;
+    final ExecutorService network=Executors.newSingleThreadExecutor(); Calendar historyDate=Calendar.getInstance(); LinearLayout historyList; TextView historyStatus; int[][] board2048=new int[4][4]; int score2048=0; LinearLayout boardView; TextView scoreView; final Random gameRandom=new Random(); Handler gameHandler=new Handler(Looper.getMainLooper()); Runnable reactionTask; boolean reactionWaiting=false,reactionReady=false; long reactionStart=0;
     LinearLayout fileContainer; DocumentFile currentDir; final ArrayList<DocumentFile> folderStack=new ArrayList<>(); ImageView qrImage;
     DecimalFormat decimal=new DecimalFormat("0.##########");
     TextView text(String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(Color.WHITE);return t;}
@@ -52,6 +58,8 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "clean":heading("CleanX 文件清理","所有候选文件默认不勾选，必须由你逐项选择并二次确认。");Button clean=button("打开 CleanX 扫描",true);root.addView(clean);clean.setOnClickListener(v->startActivity(new Intent(this,MainActivity.class)));break;
             case "file":heading("文件管理","只浏览你通过系统选择器授权的目录；删除操作会再次确认。");fileManager();break;
             case "qr":heading("二维码生成器","输入网址、文字或联系方式，生成可扫描的二维码。");qrGenerator();break;
+            case "history":heading("历史上的今天","按日期查看历史事件、人物诞辰与纪念日。");historyToday();break;
+            case "games":heading("小游戏","离线小游戏，不需要登录，也不上传游戏数据。");miniGames();break;
             case "calc":heading("计算器","支持括号、百分比、连续运算和科学函数。");calculator();break;
             case "timer":heading("秒表与计时器","正计时与倒计时，适合日常计时。");stopwatch();countdown();break;
             case "convert":heading("单位换算","长度、质量、温度、面积、体积与速度换算。");converter();break;
@@ -60,7 +68,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
             case "flash":heading("手电筒","点击开启时才申请相机权限；离开页面自动关闭。");flashlight();break;
         }
     }
-    Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));return b;}
+    Button button(String label,boolean primary){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setTextSize(14);b.setBackground(tint(primary?0x6659a9cb:0x334a739a,16));b.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_DOWN){v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);v.animate().scaleX(.95f).scaleY(.95f).alpha(.86f).setDuration(75).start();}else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();}return false;});return b;}
     void deviceInfo(){
         android.os.StatFs fs=new android.os.StatFs(android.os.Environment.getDataDirectory().getPath());long total=fs.getTotalBytes(),free=fs.getAvailableBytes();
         android.content.IntentFilter f=new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED);Intent battery=registerReceiver(null,f);int level=battery==null?-1:battery.getIntExtra("level",-1),scale=battery==null?100:battery.getIntExtra("scale",100);
@@ -181,6 +189,64 @@ public class ToolActivity extends Activity implements SensorEventListener {
         make.setOnClickListener(v->{String content=value.getText().toString().trim();if(content.isEmpty()){Toast.makeText(this,"先输入需要生成二维码的内容",Toast.LENGTH_SHORT).show();return;}try{Map<EncodeHintType,Object> hints=new EnumMap<>(EncodeHintType.class);hints.put(EncodeHintType.MARGIN,1);BitMatrix matrix=new QRCodeWriter().encode(content,BarcodeFormat.QR_CODE,720,720,hints);Bitmap bitmap=Bitmap.createBitmap(720,720,Bitmap.Config.ARGB_8888);for(int y=0;y<720;y++)for(int x=0;x<720;x++)bitmap.setPixel(x,y,matrix.get(x,y)?Color.BLACK:Color.WHITE);qrImage.setImageBitmap(bitmap);}catch(Exception e){Toast.makeText(this,"内容太长或无法生成二维码，请缩短内容。",Toast.LENGTH_LONG).show();}});
     }
 
+
+    void historyToday(){
+        LinearLayout controls=new LinearLayout(this);Button pick=button("选择日期",false);Button today=button("回到今天",false);controls.addView(pick,new LinearLayout.LayoutParams(0,dp(48),1));controls.addView(today,new LinearLayout.LayoutParams(0,dp(48),1));root.addView(controls);
+        historyStatus=text("正在读取历史事件…",13);historyStatus.setTextColor(0xffa9bfd9);historyStatus.setPadding(0,dp(12),0,dp(10));root.addView(historyStatus);
+        historyList=new LinearLayout(this);historyList.setOrientation(1);root.addView(historyList);
+        TextView source=text("资料来源：中文维基百科 On This Day · 内容由维基百科社群整理，部分条目可能不完整。",11);source.setTextColor(0xff819bb8);source.setPadding(0,dp(16),0,0);root.addView(source);
+        pick.setOnClickListener(v->new DatePickerDialog(this,(view,y,m,d)->{historyDate.set(y,m,d);loadHistory();},historyDate.get(Calendar.YEAR),historyDate.get(Calendar.MONTH),historyDate.get(Calendar.DAY_OF_MONTH)).show());
+        today.setOnClickListener(v->{historyDate=Calendar.getInstance();loadHistory();});loadHistory();
+    }
+    void loadHistory(){
+        if(historyList==null)return;historyList.removeAllViews();
+        String date=new SimpleDateFormat("yyyy年M月d日 EEEE",Locale.CHINA).format(historyDate.getTime());historyStatus.setText(date+" · 正在加载…");
+        final String month=String.format(Locale.US,"%02d",historyDate.get(Calendar.MONTH)+1),day=String.format(Locale.US,"%02d",historyDate.get(Calendar.DAY_OF_MONTH));
+        network.execute(()->{HttpURLConnection c=null;try{
+            URL url=new URL("https://zh.wikipedia.org/api/rest_v1/feed/onthisday/all/"+month+"/"+day);
+            c=(HttpURLConnection)url.openConnection();c.setRequestMethod("GET");c.setConnectTimeout(12000);c.setReadTimeout(15000);c.setRequestProperty("User-Agent","wu2hii-Toolbox/3.3 (Android)");c.setRequestProperty("Accept","application/json");
+            int code=c.getResponseCode();if(code<200||code>=300)throw new IOException("HTTP "+code);
+            ByteArrayOutputStream out=new ByteArrayOutputStream();try(InputStream in=c.getInputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}
+            JSONObject json=new JSONObject(out.toString("UTF-8"));ArrayList<JSONObject> items=new ArrayList<>();HashSet<String> seen=new HashSet<>();
+            for(String bucket:new String[]{"selected","events","births","deaths","holidays"}){JSONArray arr=json.optJSONArray(bucket);if(arr==null)continue;for(int i=0;i<arr.length();i++){JSONObject item=arr.optJSONObject(i);if(item==null)continue;String key=item.optString("year")+"|"+item.optString("text");if(seen.add(key))items.add(item);}}
+            runOnUiThread(()->renderHistory(date,items));
+        }catch(Exception e){runOnUiThread(()->{if(historyStatus!=null)historyStatus.setText(date+" · 暂时无法获取数据，请检查网络后重试。");});}finally{if(c!=null)c.disconnect();}});
+    }
+    void renderHistory(String date,ArrayList<JSONObject> items){
+        if(isFinishing()||historyList==null)return;historyList.removeAllViews();historyStatus.setText(date+" · 找到 "+items.size()+" 条记录");
+        if(items.isEmpty()){historyList.addView(text("这一天暂时没有收录的条目。",14));return;}
+        int shown=0;for(JSONObject item:items){if(shown++>=45)break;int year=item.optInt("year",0);String desc=item.optString("text","");JSONArray pages=item.optJSONArray("pages");String url="";
+            if(pages!=null&&pages.length()>0){JSONObject page=pages.optJSONObject(0);if(page!=null){String title=page.optString("title","");if(!title.isEmpty())try{url="https://zh.wikipedia.org/wiki/"+URLEncoder.encode(title,"UTF-8").replace("+","%20");}catch(Exception ignored){}}}
+            LinearLayout card=new LinearLayout(this);card.setOrientation(1);card.setPadding(dp(14),dp(12),dp(14),dp(12));card.setBackground(tint(0x244c82ad,14));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(8);historyList.addView(card,lp);
+            TextView y=text(year==0?"历史记录":year+" 年",12);y.setTextColor(0xff91d7e5);y.setTypeface(null,Typeface.BOLD);card.addView(y);
+            TextView body=text(desc,14);body.setPadding(0,dp(5),0,0);card.addView(body);
+            if(!url.isEmpty()){TextView link=text("查看相关词条  ›",11);link.setTextColor(0xff8bc9f0);link.setPadding(0,dp(8),0,0);card.addView(link);final String target=url;card.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target)));}catch(Exception ignored){}});}
+        }
+    }
+    void miniGames(){TextView intro=text("选一个小游戏，随时玩一局。",13);intro.setTextColor(0xffa9bfd9);root.addView(intro);Button g=button("2048 · 数字合并",true);root.addView(g);g.setOnClickListener(v->game2048());Button r=button("反应速度测试",false);root.addView(r);r.setOnClickListener(v->reactionGame());game2048();}
+    void game2048(){
+        root.removeViews(2,Math.max(0,root.getChildCount()-2));heading("2048","滑动棋盘或使用方向按钮，把相同数字合并到 2048。");
+        scoreView=text("分数：0",17);root.addView(scoreView);boardView=new LinearLayout(this);boardView.setOrientation(1);boardView.setPadding(dp(6),dp(6),dp(6),dp(6));boardView.setBackground(tint(0x554d7192,16));root.addView(boardView);
+        LinearLayout controls=new LinearLayout(this);controls.setOrientation(1);for(String[] row:new String[][]{{"↑"},{"←","↓","→"}}){LinearLayout line=new LinearLayout(this);for(String s:row){Button b=button(s,false);line.addView(b,new LinearLayout.LayoutParams(0,dp(48),1));b.setOnClickListener(v->move2048(s.equals("↑")?0:s.equals("↓")?1:s.equals("←")?2:3));}controls.addView(line);}root.addView(controls);
+        Button reset=button("重新开始",false);root.addView(reset);reset.setOnClickListener(v->new2048());
+        boardView.setOnTouchListener(new View.OnTouchListener(){float x,y;public boolean onTouch(View v,MotionEvent e){if(e.getAction()==MotionEvent.ACTION_DOWN){x=e.getX();y=e.getY();return true;}if(e.getAction()==MotionEvent.ACTION_UP){float dx=e.getX()-x,dy=e.getY()-y;if(Math.max(Math.abs(dx),Math.abs(dy))>dp(24)){if(Math.abs(dx)>Math.abs(dy))move2048(dx>0?3:2);else move2048(dy>0?1:0);}return true;}return true;}});new2048();
+    }
+    void new2048(){board2048=new int[4][4];score2048=0;spawn2048();spawn2048();draw2048();}
+    void spawn2048(){ArrayList<Integer> empty=new ArrayList<>();for(int i=0;i<4;i++)for(int j=0;j<4;j++)if(board2048[i][j]==0)empty.add(i*4+j);if(empty.isEmpty())return;int p=empty.get(gameRandom.nextInt(empty.size()));board2048[p/4][p%4]=gameRandom.nextInt(10)==0?4:2;}
+    void move2048(int dir){boolean changed=false;for(int line=0;line<4;line++){int[] a=new int[4];for(int i=0;i<4;i++){int r,c;if(dir<2){r=dir==0?i:3-i;c=line;}else{r=line;c=dir==2?i:3-i;}a[i]=board2048[r][c];}
+        int[] b=new int[4];int n=0;for(int x:a)if(x!=0)b[n++]=x;for(int i=0;i<3;i++)if(b[i]!=0&&b[i]==b[i+1]){b[i]*=2;score2048+=b[i];for(int j=i+1;j<3;j++)b[j]=b[j+1];b[3]=0;}
+        for(int i=0;i<4;i++){int r,c;if(dir<2){r=dir==0?i:3-i;c=line;}else{r=line;c=dir==2?i:3-i;}if(board2048[r][c]!=b[i])changed=true;board2048[r][c]=b[i];}}
+        if(changed){spawn2048();performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);draw2048();if(!canMove2048())Toast.makeText(this,"没有可合并的方块了，重新开始试试。",Toast.LENGTH_LONG).show();}}
+    boolean canMove2048(){for(int i=0;i<4;i++)for(int j=0;j<4;j++){if(board2048[i][j]==0)return true;if(i<3&&board2048[i][j]==board2048[i+1][j])return true;if(j<3&&board2048[i][j]==board2048[i][j+1])return true;}return false;}
+    void draw2048(){if(boardView==null)return;scoreView.setText("分数："+score2048);boardView.removeAllViews();for(int i=0;i<4;i++){LinearLayout row=new LinearLayout(this);for(int j=0;j<4;j++){int val=board2048[i][j];TextView cell=text(val==0?"":String.valueOf(val),val>=1024?20:24);cell.setGravity(Gravity.CENTER);cell.setTypeface(null,Typeface.BOLD);cell.setBackground(tint(val==0?0x223e5874:val==2?0x5579a8bf:val==4?0x668ac5d2:val==8?0x7793d9d0:0x8898b9df,9));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(68),1);p.setMargins(dp(3),dp(3),dp(3),dp(3));row.addView(cell,p);}boardView.addView(row);}}
+    void reactionGame(){
+        root.removeViews(2,Math.max(0,root.getChildCount()-2));heading("反应速度测试","点击开始，等待屏幕变绿后尽快点击。抢先点击会判定失败。");
+        TextView display=text("准备好了吗？",25);display.setGravity(Gravity.CENTER);display.setPadding(0,dp(40),0,dp(40));display.setBackground(tint(0x334a739a,18));root.addView(display);
+        Button start=button("开始测试",true);root.addView(start);final Random random=new Random();
+        start.setOnClickListener(v->{if(reactionTask!=null)gameHandler.removeCallbacks(reactionTask);reactionWaiting=true;reactionReady=false;display.setText("等待绿色出现…");display.setBackground(tint(0xff9b6a42,18));start.setText("现在点击这里");reactionTask=()->{reactionReady=true;reactionWaiting=false;reactionStart=SystemClock.elapsedRealtime();display.setText("现在！点击！");display.setBackground(tint(0xff287c57,18));display.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);};gameHandler.postDelayed(reactionTask,1200+random.nextInt(2800));});
+        display.setOnClickListener(v->{if(reactionWaiting){gameHandler.removeCallbacks(reactionTask);reactionWaiting=false;display.setText("太早了！再试一次。");display.setBackground(tint(0xff9b4141,18));start.setText("重新开始");}else if(reactionReady){long ms=SystemClock.elapsedRealtime()-reactionStart;reactionReady=false;display.setText("你的反应时间："+ms+" ms");display.setBackground(tint(0x334a739a,18));start.setText("再测一次");}else display.setText("先点击开始测试。");});
+    }
+
     void flashlight(){
         cameraManager=(CameraManager)getSystemService(CAMERA_SERVICE);Button toggle=button("开启手电筒",true);root.addView(toggle);TextView status=text("当前状态：关闭",15);status.setPadding(0,dp(12),0,0);root.addView(status);
         try{for(String id:cameraManager.getCameraIdList()){CameraCharacteristics c=cameraManager.getCameraCharacteristics(id);Boolean flash=c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);Integer facing=c.get(CameraCharacteristics.LENS_FACING);if(Boolean.TRUE.equals(flash)&&facing!=null&&facing==CameraCharacteristics.LENS_FACING_BACK){cameraId=id;break;}}}catch(Exception ignored){}
@@ -197,5 +263,5 @@ public class ToolActivity extends Activity implements SensorEventListener {
     @Override protected void onPause(){super.onPause();if(compassRegistered&&sensorManager!=null){sensorManager.unregisterListener(this);compassRegistered=false;}if(torchOn&&cameraManager!=null&&cameraId!=null){try{cameraManager.setTorchMode(cameraId,false);}catch(Exception ignored){}torchOn=false;}if(clockTask!=null)handler.removeCallbacks(clockTask);}
     @Override public void onSensorChanged(SensorEvent e){if(e.sensor.getType()==Sensor.TYPE_ACCELEROMETER)gravity=e.values.clone();else if(e.sensor.getType()==Sensor.TYPE_MAGNETIC_FIELD)geomagnetic=e.values.clone();if(gravity!=null&&geomagnetic!=null&&compassValue!=null){float[] R=new float[9],I=new float[9];if(SensorManager.getRotationMatrix(R,I,gravity,geomagnetic)){float[] o=new float[3];SensorManager.getOrientation(R,o);int degree=((int)Math.round(Math.toDegrees(o[0]))+360)%360;String direction=degree<23||degree>=338?"北":degree<68?"东北":degree<113?"东":degree<158?"东南":degree<203?"南":degree<248?"西南":degree<293?"西":"西北";compassValue.setText(degree+"°\n"+direction);}}}
     @Override public void onAccuracyChanged(Sensor s,int accuracy){}
-    @Override protected void onDestroy(){super.onDestroy();handler.removeCallbacksAndMessages(null);}
+    @Override protected void onDestroy(){super.onDestroy();handler.removeCallbacksAndMessages(null);gameHandler.removeCallbacksAndMessages(null);network.shutdownNow();}
 }
