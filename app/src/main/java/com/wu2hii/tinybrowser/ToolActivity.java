@@ -505,7 +505,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
                 if(lp!=null){
                     s.append("本机 IP：");
                     boolean found=false;
-                    for(java.net.InetAddress a:lp.getLinkAddresses()){if(!a.isLoopbackAddress()){if(found)s.append(", ");s.append(a.getHostAddress());found=true;}}
+                    for(android.net.LinkAddress la:lp.getLinkAddresses()){java.net.InetAddress a=la.getAddress();if(a!=null&&!a.isLoopbackAddress()){if(found)s.append(", ");s.append(a.getHostAddress());found=true;}}
                     if(!found)s.append("不可用");
                     s.append("\nDNS 服务器：");
                     if(lp.getDnsServers().isEmpty())s.append("系统未提供");
