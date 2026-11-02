@@ -68,3 +68,11 @@ GitHub Actions builds a debug APK, uploads an Actions artifact, and publishes it
 - 打开页面时尝试读取剪贴板；支持手动粘贴和重新读取。
 - 当前通过第三方 Cobalt 网页解析服务继续下载，需在网页内粘贴链接；并非内置原生解析引擎。
 - 不要求提供社交平台账号密码；仅用于公开且有权保存的内容。
+
+
+## 4.0.0 网络工具
+- 新增网络诊断页面：本机网络连接状态、网络类型、IP 与系统 DNS 服务器。
+- 新增 DNS 域名解析查询。
+- 新增 Cloudflare HTTPS 连通性与往返耗时测试。
+- 新增约 5 MB 的 Cloudflare 下载测速；仅用户主动点击时运行，并显示数据量和平均 Mbps。
+- 不新增备忘录功能；网络测试不会在后台自动运行。
