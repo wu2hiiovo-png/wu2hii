@@ -57,6 +57,8 @@ public class DashboardActivity extends Activity {
         addTool("✦","设备信息","电池、系统版本、存储概览","device");
         addTool("⌁","CleanX 文件清理","扫描候选文件，逐项确认后处理","clean");
         addTool("▤","文件管理","授权目录浏览、创建文件夹、打开与删除","file");
+        section("网络工具");
+        addTool("⌁","网络诊断","网络状态、DNS 查询、延迟与下载测速","network");
         section("计算与效率");
         addTool("＋","计算器","大按键布局 · 科学计算 · 历史结果","calc");
         addTool("◷","秒表与计时器","正计时、倒计时","timer");
