@@ -4,6 +4,10 @@ import android.Manifest;
 import android.app.*;
 import android.content.*;
 import android.net.Uri;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.LinkProperties;
 import android.provider.DocumentsContract;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -73,6 +77,7 @@ public class ToolActivity extends Activity implements SensorEventListener {
     void showTool(){
         switch(tool==null?"":tool){
             case "device":heading("设备信息","设备基本信息与存储概览");deviceInfo();break;
+            case "network":heading("网络工具","查看本机网络、查询 DNS，并手动测试连通性与下载速度。测速会产生少量网络流量。");networkTools();break;
             case "clean":heading("CleanX 文件清理","所有候选文件默认不勾选，必须由你逐项选择并二次确认。");Button clean=button("打开 CleanX 扫描",true);root.addView(clean);clean.setOnClickListener(v->startActivity(new Intent(this,MainActivity.class)));break;
             case "file":heading("文件管理","只浏览你通过系统选择器授权的目录；删除操作会再次确认。");fileManager();break;
             case "qr":heading("二维码生成器","输入网址、文字或联系方式，生成可扫描的二维码。");qrGenerator();break;
@@ -480,4 +485,58 @@ public class ToolActivity extends Activity implements SensorEventListener {
     @Override public void onSensorChanged(SensorEvent e){if(e.sensor.getType()==Sensor.TYPE_ACCELEROMETER)gravity=e.values.clone();else if(e.sensor.getType()==Sensor.TYPE_MAGNETIC_FIELD)geomagnetic=e.values.clone();if(gravity!=null&&geomagnetic!=null&&compassValue!=null){float[] R=new float[9],I=new float[9];if(SensorManager.getRotationMatrix(R,I,gravity,geomagnetic)){float[] o=new float[3];SensorManager.getOrientation(R,o);int degree=((int)Math.round(Math.toDegrees(o[0]))+360)%360;String direction=degree<23||degree>=338?"北":degree<68?"东北":degree<113?"东":degree<158?"东南":degree<203?"南":degree<248?"西南":degree<293?"西":"西北";compassValue.setText(degree+"°\n"+direction);}}}
     @Override public void onAccuracyChanged(Sensor s,int accuracy){}
     @Override protected void onDestroy(){super.onDestroy();handler.removeCallbacksAndMessages(null);gameHandler.removeCallbacksAndMessages(null);network.shutdownNow();}
+
+    void networkTools(){
+        TextView info=text("正在读取网络状态…",13);info.setTextColor(0xffa9bfd9);info.setPadding(dp(12),dp(12),dp(12),dp(12));info.setBackground(tint(0x334a739a,16));root.addView(info);
+        Runnable refresh=()->{
+            StringBuilder s=new StringBuilder();
+            try{
+                ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+                Network active=cm==null?null:cm.getActiveNetwork();
+                NetworkCapabilities caps=active==null?null:cm.getNetworkCapabilities(active);
+                LinkProperties lp=active==null?null:cm.getLinkProperties(active);
+                s.append("连接状态：").append(caps==null?"未连接": "已连接").append("\n");
+                if(caps!=null){
+                    String type=caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)?"Wi-Fi":caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)?"移动网络":caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)?"以太网":"其他网络";
+                    s.append("网络类型：").append(type).append("\n");
+                    s.append("互联网能力：").append(caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)?"支持":"未知").append("\n");
+                    s.append("已验证联网：").append(caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)?"是":"否").append("\n");
+                }
+                if(lp!=null){
+                    s.append("本机 IP：");
+                    boolean found=false;
+                    for(java.net.InetAddress a:lp.getLinkAddresses()){if(!a.isLoopbackAddress()){if(found)s.append(", ");s.append(a.getHostAddress());found=true;}}
+                    if(!found)s.append("不可用");
+                    s.append("\nDNS 服务器：");
+                    if(lp.getDnsServers().isEmpty())s.append("系统未提供");
+                    else for(int i=0;i<lp.getDnsServers().size();i++){if(i>0)s.append(", ");s.append(lp.getDnsServers().get(i).getHostAddress());}
+                }
+            }catch(Exception e){s.append("读取失败：").append(e.getMessage());}
+            info.setText(s.toString());
+        };
+        Button refreshBtn=button("刷新网络状态",false);root.addView(refreshBtn);refreshBtn.setOnClickListener(v->refresh.run());refresh.run();
+        TextView sep=text("DNS 查询",18);sep.setTypeface(null,Typeface.BOLD);sep.setPadding(0,dp(20),0,dp(8));root.addView(sep);
+        EditText host=input("输入域名，例如 example.com");root.addView(host);
+        TextView dnsResult=text("查询结果会显示在这里。",13);dnsResult.setTextColor(0xffa9bfd9);dnsResult.setPadding(0,dp(8),0,dp(8));root.addView(dnsResult);
+        Button dns=button("查询 DNS",true);root.addView(dns);dns.setOnClickListener(v->{
+            String domain=host.getText().toString().trim();
+            if(domain.isEmpty()||domain.contains("://")||domain.contains("/")||domain.contains(" ")){dnsResult.setText("请输入纯域名，例如 example.com");return;}
+            dns.setEnabled(false);dnsResult.setText("正在查询…");
+            network.execute(()->{String result;try{java.net.InetAddress[] addresses=java.net.InetAddress.getAllByName(domain);StringBuilder b=new StringBuilder("域名："+domain+"\n");for(java.net.InetAddress a:addresses)b.append(a.getHostAddress()).append("\n");result=b.toString();}catch(Exception e){result="查询失败："+e.getClass().getSimpleName()+"（"+e.getMessage()+"）";}String finalResult=result;runOnUiThread(()->{dnsResult.setText(finalResult);dns.setEnabled(true);});});
+        });
+        TextView testTitle=text("连通性与延迟",18);testTitle.setTypeface(null,Typeface.BOLD);testTitle.setPadding(0,dp(20),0,dp(8));root.addView(testTitle);
+        TextView testResult=text("测试目标：Cloudflare HTTPS 连通性检测",12);testResult.setTextColor(0xffa9bfd9);root.addView(testResult);
+        Button latency=button("测试网络延迟",false);root.addView(latency);latency.setOnClickListener(v->{
+            latency.setEnabled(false);testResult.setText("正在测试…");
+            network.execute(()->{long start=System.nanoTime();String result;HttpURLConnection c=null;try{c=(HttpURLConnection)new URL("https://www.cloudflare.com/cdn-cgi/trace").openConnection();c.setConnectTimeout(8000);c.setReadTimeout(8000);c.setRequestMethod("GET");int code=c.getResponseCode();long ms=(System.nanoTime()-start)/1000000L;result="HTTP 状态："+code+"\n往返耗时："+ms+" ms";}catch(Exception e){result="连接失败："+e.getClass().getSimpleName()+"（"+e.getMessage()+"）";}finally{if(c!=null)c.disconnect();}String rr=result;runOnUiThread(()->{testResult.setText(rr);latency.setEnabled(true);});});
+        });
+        TextView speedTitle=text("下载速度测试",18);speedTitle.setTypeface(null,Typeface.BOLD);speedTitle.setPadding(0,dp(20),0,dp(8));root.addView(speedTitle);
+        TextView speedResult=text("使用 Cloudflare 测试节点下载约 5 MB 数据，结果受网络和服务器负载影响。",12);speedResult.setTextColor(0xffa9bfd9);root.addView(speedResult);
+        Button speed=button("开始测速（约 5 MB）",true);root.addView(speed);speed.setOnClickListener(v->{
+            speed.setEnabled(false);speedResult.setText("正在下载测试数据，请稍候…");network.execute(()->{
+                HttpURLConnection c=null;String result;
+                try{long start=System.nanoTime();c=(HttpURLConnection)new URL("https://speed.cloudflare.com/__down?bytes=5000000").openConnection();c.setConnectTimeout(10000);c.setReadTimeout(20000);c.setRequestProperty("Cache-Control","no-cache");int code=c.getResponseCode();if(code<200||code>=300)throw new IOException("HTTP "+code);long total=0;byte[] buf=new byte[16384];try(InputStream in=c.getInputStream()){int n;while((n=in.read(buf))!=-1)total+=n;}double sec=(System.nanoTime()-start)/1e9;double mbps=total*8.0/sec/1000000.0;result=String.format(java.util.Locale.US,"下载数据：%.2f MB\n耗时：%.2f 秒\n平均下载速度：%.2f Mbps",total/1048576.0,sec,mbps);}catch(Exception e){result="测速失败："+e.getClass().getSimpleName()+"（"+e.getMessage()+"）";}finally{if(c!=null)c.disconnect();}String rr=result;runOnUiThread(()->{speedResult.setText(rr);speed.setEnabled(true);});
+            });
+        });
+    }
 }
